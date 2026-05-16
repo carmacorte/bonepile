@@ -182,7 +182,7 @@ canvas{
   margin:12px 0 30px;
 }
 
-button{
+button{touch-action:manipulation;pointer-events:auto;
   min-width:260px;
   margin:7px;
   padding:15px 30px;
@@ -257,6 +257,7 @@ body.touch #touch{display:block}
 #use{right:16px;bottom:calc(34px + env(safe-area-inset-bottom))}
 
 #loading{
+  pointer-events:none;
   position:absolute;
   left:50%;
   top:50%;
@@ -269,7 +270,7 @@ body.touch #touch{display:block}
   text-align:center;
   font-size:13px;
   letter-spacing:2px;
-  z-index:25;
+  z-index:18;
   pointer-events:none;
 }
 
@@ -307,10 +308,13 @@ body.touch #touch{display:block}
   #zone{font-size:16px;min-width:138px}
   #log{width:52vw;font-size:13px}
 }
+
+body.menu-open canvas{pointer-events:none}
+body.menu-open #touch{display:none!important}
 </style>
 </head>
 
-<body class="crt">
+<body class="crt menu-open">
 <div id="game"></div>
 
 <div id="hud">
@@ -344,11 +348,11 @@ body.touch #touch{display:block}
 
 <div id="menu">
   <div class="logo">BONEPILE</div>
-  <div class="sub">// 3D HTML INTEGRATION BUILD //</div>
+  <div class="sub">// 3D HTML TOUCH FIX BUILD //</div>
   <div class="quote">“No necesitamos ser perfectos. Solo necesitamos seguir funcionando.”<br>— R3-W0RK</div>
   <button id="start">INICIAR SECUENCIA</button>
   <button id="manual">MANUAL TÉCNICO</button>
-  <div style="margin-top:12px;color:#385d42;font-size:11px">v0.2 // THREE.JS R3-W0RK GLB</div>
+  <div style="margin-top:12px;color:#385d42;font-size:11px">v0.2.1 // TOUCH START FIX</div>
 </div>
 
 <div id="help" class="hidden">
@@ -618,24 +622,56 @@ function bind(id,code,fn){
 bind('up','KeyW');bind('down','KeyS');bind('left','KeyA');bind('right','KeyD');
 bind('jump','Space');bind('dash','ShiftLeft');bind('fluxBtn','KeyQ',useFlux);bind('use','KeyE');
 
-document.getElementById('start').onclick=()=>{
+function startSequence(){
   state='play';
+  document.body.classList.remove('menu-open');
   document.getElementById('menu').classList.add('hidden');
   document.getElementById('help').classList.add('hidden');
+  document.getElementById('dead').classList.add('hidden');
+  document.getElementById('win').classList.add('hidden');
   Object.assign(playerStats,{hp:100,signal:100,risk:0,flux:80});
   player.position.set(0,0,1.2);
   camera.position.set(0,4.2,8.5);
   log('Secuencia iniciada. Explora MRB Vault.');
-};
-document.getElementById('manual').onclick=()=>{document.getElementById('menu').classList.add('hidden');document.getElementById('help').classList.remove('hidden')};
-document.getElementById('back').onclick=()=>{document.getElementById('help').classList.add('hidden');document.getElementById('menu').classList.remove('hidden')};
-document.getElementById('retry1').onclick=()=>document.getElementById('start').onclick();
-document.getElementById('retry2').onclick=()=>document.getElementById('start').onclick();
-document.getElementById('menu1').onclick=goMenu;
-document.getElementById('menu2').onclick=goMenu;
+}
+
+function showManual(){
+  document.getElementById('menu').classList.add('hidden');
+  document.getElementById('help').classList.remove('hidden');
+}
+
+function hideManual(){
+  document.getElementById('help').classList.add('hidden');
+  document.getElementById('menu').classList.remove('hidden');
+}
+
+function bindUI(id,fn){
+  const el=document.getElementById(id);
+  if(!el)return;
+  let last=0;
+  const run=(e)=>{
+    if(e){e.preventDefault();e.stopPropagation();}
+    const now=Date.now();
+    if(now-last<180)return;
+    last=now;
+    fn();
+  };
+  el.addEventListener('click',run);
+  el.addEventListener('touchstart',run,{passive:false});
+  el.addEventListener('pointerdown',run);
+}
+
+bindUI('start',startSequence);
+bindUI('manual',showManual);
+bindUI('back',hideManual);
+bindUI('retry1',startSequence);
+bindUI('retry2',startSequence);
+bindUI('menu1',goMenu);
+bindUI('menu2',goMenu);
 
 function goMenu(){
   state='menu';
+  document.body.classList.add('menu-open');
   document.getElementById('menu').classList.remove('hidden');
   document.getElementById('dead').classList.add('hidden');
   document.getElementById('win').classList.add('hidden');
