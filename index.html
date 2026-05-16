@@ -1,117 +1,555 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no" />
-<title>BONEPILE - R3-W0RK 3D</title>
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
-*{box-sizing:border-box;margin:0;padding:0}
-body{overflow:hidden;background:#030504;color:#c8c8c8;font-family:'Share Tech Mono',monospace;touch-action:none}
-#game{position:fixed;inset:0;background:#020303}
-#hud{position:fixed;inset:0;pointer-events:none;z-index:10}
-.top-hud{position:absolute;top:18px;left:18px;display:flex;gap:12px}
-.stat{width:150px;background:rgba(5,8,8,.72);border:1px solid rgba(90,138,106,.75);padding:10px 12px}
-.stat-label{color:#7fb18d;font-size:12px;letter-spacing:3px;margin-bottom:8px}
-.bar{height:8px;background:#151817;overflow:hidden}.fill{height:100%;transition:width .2s}
-#integrityFill{width:100%;background:#ff6b35}#signalFill{width:100%;background:#00a8ff}#riskFill{width:0%;background:#ff0033}
-.title{position:absolute;top:18px;right:22px;text-align:right;color:#b87333;letter-spacing:3px;font-size:16px;text-shadow:0 0 8px rgba(184,115,51,.5)}
-.subtitle{color:#5a8a6a;font-size:11px;margin-top:4px;letter-spacing:1px}
-.log{position:absolute;left:18px;bottom:22px;width:min(520px,calc(100vw - 36px));min-height:52px;padding:12px 16px;background:rgba(5,8,8,.78);border-left:3px solid #ff6b35;color:#b8b8b8;font-size:14px;line-height:1.5}
-#menu{position:fixed;inset:0;z-index:20;display:flex;flex-direction:column;justify-content:center;align-items:center;background:rgba(2,3,3,.88);text-align:center}
-.main-title{font-size:70px;letter-spacing:12px;color:#cfcfcf;text-shadow:0 0 18px rgba(255,255,255,.16),0 8px 0 #191919}
-.main-sub{margin-top:18px;padding-bottom:12px;border-bottom:1px solid #2a4a3a;color:#7fb18d;letter-spacing:6px;font-size:15px}
-.quote{margin:35px 0;max-width:620px;color:#777;font-style:italic;line-height:1.6}
-button{font-family:'Share Tech Mono',monospace;background:rgba(5,8,8,.6);color:#ff6b35;border:1px solid #ff6b35;padding:14px 36px;letter-spacing:4px;font-size:15px;cursor:pointer}
-#touch{display:none;position:fixed;inset:0;z-index:15;pointer-events:none}
-.dpad{position:absolute;left:28px;bottom:28px;width:162px;height:162px;pointer-events:auto}
-.touch-btn{position:absolute;width:58px;height:58px;display:flex;justify-content:center;align-items:center;border:1px solid rgba(255,107,53,.75);color:#ff6b35;background:rgba(6,8,8,.66);font-size:22px;user-select:none;-webkit-user-select:none}
-#up{left:52px;top:0}#left{left:0;top:52px}#right{left:104px;top:52px}#down{left:52px;top:104px}
-.actions{position:absolute;right:28px;bottom:34px;width:270px;height:150px;pointer-events:auto}
-.action{position:absolute;width:92px;height:60px;border-radius:14px;border:1px solid rgba(90,138,106,.85);color:#7fb18d;background:rgba(6,8,8,.66);display:flex;justify-content:center;align-items:center;letter-spacing:3px;font-size:13px;user-select:none;-webkit-user-select:none}
-#dash{right:108px;top:0}#flux{right:0;top:0;color:#00ff41;border-color:#00ff41}#use{right:54px;top:78px;color:#ff6b35;border-color:#ff6b35;width:120px}
-.active{background:rgba(255,107,53,.25)!important;box-shadow:0 0 18px rgba(255,107,53,.45)}
-.crt:before{content:"";position:fixed;inset:0;z-index:30;pointer-events:none;background:linear-gradient(rgba(18,16,16,0) 50%,rgba(0,0,0,.18) 50%),linear-gradient(90deg,rgba(255,0,0,.025),rgba(0,255,0,.012),rgba(0,0,255,.025));background-size:100% 2px,3px 100%;opacity:.75}
-@media (hover:none),(pointer:coarse),(max-width:900px){#touch{display:block}.main-title{font-size:48px;letter-spacing:8px}.top-hud{gap:8px;top:12px;left:12px}.stat{width:116px;padding:8px}.stat-label{font-size:10px;letter-spacing:2px}.title{display:none}.log{font-size:12px;bottom:12px;max-width:45vw}}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="BONEPILE - Industrial Sci-Fi Stealth Game. Play as R3-WORK, a reworked SOIC-16 chip, and survive in a PCB megastructure controlled by the IPC Authority.">
+    <meta name="theme-color" content="#000000">
+    <title>BONEPILE - R3-W0RK Protocol</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            background: #000;
+            color: #0f0;
+            font-family: 'OCR A', 'Courier New', monospace;
+            overflow: hidden;
+        }
+
+        #gameContainer {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            background: linear-gradient(135deg, #000 0%, #0a0a0a 100%);
+            border: 2px solid #0f0;
+        }
+
+        #canvas3d {
+            flex: 1;
+            display: block;
+            background: #000;
+        }
+
+        #hud {
+            background: rgba(0, 0, 0, 0.95);
+            border-top: 2px solid #0f0;
+            padding: 12px 20px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 15px;
+            font-size: 10px;
+        }
+
+        .stat {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+        }
+
+        .stat-label {
+            color: #0a0;
+            text-transform: uppercase;
+            font-size: 8px;
+            letter-spacing: 1.5px;
+        }
+
+        .stat-bar {
+            width: 100%;
+            height: 5px;
+            background: #1a1a1a;
+            border: 1px solid #0f0;
+            overflow: hidden;
+        }
+
+        .stat-fill {
+            height: 100%;
+            transition: width 0.2s ease;
+            box-shadow: 0 0 4px currentColor;
+        }
+
+        .stat-value {
+            color: #0f0;
+            font-size: 8px;
+        }
+
+        #info {
+            background: rgba(0, 0, 0, 0.8);
+            border-top: 1px solid #0a0;
+            padding: 6px 20px;
+            font-size: 9px;
+            color: #0a0;
+            text-align: center;
+            letter-spacing: 1px;
+        }
+
+        #debug {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.85);
+            border: 1px solid #0f0;
+            padding: 8px 12px;
+            font-size: 8px;
+            z-index: 5;
+            color: #0f0;
+            line-height: 1.5;
+            max-width: 200px;
+        }
+
+        .scanline {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: calc(100% - 100px);
+            background: repeating-linear-gradient(
+                0deg,
+                rgba(0, 255, 0, 0.01),
+                rgba(0, 255, 0, 0.01) 1px,
+                transparent 1px,
+                transparent 2px
+            );
+            pointer-events: none;
+            z-index: 4;
+        }
+
+        #loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.95);
+            border: 2px solid #0f0;
+            padding: 30px 50px;
+            text-align: center;
+            z-index: 20;
+            font-size: 14px;
+            color: #0f0;
+            line-height: 1.8;
+        }
+
+        #loading.hidden {
+            display: none;
+        }
+
+        .loading-bar {
+            width: 200px;
+            height: 4px;
+            background: #1a1a1a;
+            border: 1px solid #0f0;
+            margin-top: 15px;
+            overflow: hidden;
+        }
+
+        .loading-bar-fill {
+            height: 100%;
+            background: #0f0;
+            width: 0%;
+            box-shadow: 0 0 8px #0f0;
+            animation: pulse 0.8s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        @media (max-width: 768px) {
+            #hud {
+                grid-template-columns: repeat(3, 1fr);
+                font-size: 9px;
+            }
+
+            #debug {
+                font-size: 7px;
+                padding: 6px 10px;
+            }
+
+            #info {
+                font-size: 8px;
+                padding: 4px 15px;
+            }
+        }
+    </style>
 </head>
-<body class="crt">
-<div id="game"></div>
-<div id="hud">
-  <div class="top-hud">
-    <div class="stat"><div class="stat-label">INTEGRIDAD</div><div class="bar"><div class="fill" id="integrityFill"></div></div></div>
-    <div class="stat"><div class="stat-label">SENAL</div><div class="bar"><div class="fill" id="signalFill"></div></div></div>
-    <div class="stat"><div class="stat-label">RIESGO AOI</div><div class="bar"><div class="fill" id="riskFill"></div></div></div>
-  </div>
-  <div class="title">BONEPILE 3D PROTOTYPE<div class="subtitle">R3-W0RK // UNREGISTERED NODE</div></div>
-  <div class="log" id="log">&gt; Esperando secuencia de arranque.</div>
-</div>
-<div id="touch">
-  <div class="dpad"><div class="touch-btn" id="up">▲</div><div class="touch-btn" id="left">◀</div><div class="touch-btn" id="right">▶</div><div class="touch-btn" id="down">▼</div></div>
-  <div class="actions"><div class="action" id="dash">DASH</div><div class="action" id="flux">FLUX</div><div class="action" id="use">E / USE</div></div>
-</div>
-<div id="menu">
-  <div class="main-title">BONEPILE</div>
-  <div class="main-sub">// R3-W0RK GLB INTEGRATION //</div>
-  <div class="quote">No necesitamos ser perfectos. Solo necesitamos seguir funcionando.<br>- R3-W0RK</div>
-  <button id="startBtn">INICIAR 3D</button>
-</div>
-<script type="module">
-import * as THREE from 'https://unpkg.com/three@0.160.0/build/three.module.js';
-import { GLTFLoader } from 'https://unpkg.com/three@0.160.0/examples/jsm/loaders/GLTFLoader.js';
+<body>
+    <div id="gameContainer">
+        <canvas id="canvas3d"></canvas>
+        <div id="hud">
+            <div class="stat">
+                <div class="stat-label">INTEGRIDAD</div>
+                <div class="stat-bar"><div class="stat-fill" id="integrityFill" style="width: 100%; background: #0f0"></div></div>
+                <div class="stat-value" id="integrityValue">100%</div>
+            </div>
+            <div class="stat">
+                <div class="stat-label">SEÑAL</div>
+                <div class="stat-bar"><div class="stat-fill" id="signalFill" style="width: 75%; background: #0ff"></div></div>
+                <div class="stat-value" id="signalValue">75%</div>
+            </div>
+            <div class="stat">
+                <div class="stat-label">RIESGO AOI</div>
+                <div class="stat-bar"><div class="stat-fill" id="aoiFill" style="width: 20%; background: #f60"></div></div>
+                <div class="stat-value" id="aoiValue">20%</div>
+            </div>
+            <div class="stat">
+                <div class="stat-label">ESTADO</div>
+                <div class="stat-bar"><div class="stat-fill" id="stateFill" style="width: 100%; background: #6f0"></div></div>
+                <div class="stat-value" id="stateValue">MÓVIL</div>
+            </div>
+            <div class="stat">
+                <div class="stat-label">FLUX</div>
+                <div class="stat-bar"><div class="stat-fill" id="fluxFill" style="width: 60%; background: #f96"></div></div>
+                <div class="stat-value" id="fluxValue">60%</div>
+            </div>
+        </div>
+        <div id="info">
+            A/D MOVER | SPACE SALTAR | SHIFT DASH | E HIDE | R REPARAR
+        </div>
+        <div id="debug"></div>
+        <div class="scanline"></div>
+        <div id="loading">
+            <div>INICIALIZANDO R3-W0RK...</div>
+            <div style="font-size: 11px; margin-top: 10px; color: #0a0;">CARGANDO PROTOCOLO DE SUPERVIVENCIA</div>
+            <div class="loading-bar"><div class="loading-bar-fill"></div></div>
+        </div>
+    </div>
 
-const container=document.getElementById('game'),logBox=document.getElementById('log'),menu=document.getElementById('menu');
-const keys={};let started=false,integrity=100,signal=100,risk=0,fluxTimer=0;
-function log(m){logBox.innerHTML='&gt; '+m}
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/loaders/GLTFLoader.min.js"></script>
 
-const scene=new THREE.Scene();scene.background=new THREE.Color(0x020404);scene.fog=new THREE.FogExp2(0x020404,.045);
-const camera=new THREE.PerspectiveCamera(48,innerWidth/innerHeight,.1,120);camera.position.set(7,7,8);camera.lookAt(0,0,0);
-const renderer=new THREE.WebGLRenderer({antialias:true});renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;container.appendChild(renderer.domElement);
+    <script>
+        // ===== CONFIG =====
+        const CONFIG = {
+            modelPaths: ['R3WORK.glb', './R3WORK.glb', '../R3WORK.glb'],
+            worldBounds: { min: -8, max: 8 },
+            stats: {
+                health: 100,
+                signal: 75,
+                aoiRisk: 20,
+                flux: 60
+            }
+        };
 
-scene.add(new THREE.HemisphereLight(0x9fb3a2,0x101010,1.25));
-const keyLight=new THREE.DirectionalLight(0xffffff,2.1);keyLight.position.set(5,10,5);keyLight.castShadow=true;keyLight.shadow.mapSize.set(2048,2048);scene.add(keyLight);
-const copperLight=new THREE.PointLight(0xff6b35,2.8,12);copperLight.position.set(-3,1.5,2);scene.add(copperLight);
-const greenLight=new THREE.PointLight(0x00ff66,1.4,10);greenLight.position.set(3,1.2,-2);scene.add(greenLight);
+        // ===== SCENE SETUP =====
+        const canvas = document.getElementById('canvas3d');
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x000000);
 
-const floor=new THREE.Mesh(new THREE.PlaneGeometry(24,24),new THREE.MeshStandardMaterial({color:0x07110d,roughness:.72,metalness:.18}));floor.rotation.x=-Math.PI/2;floor.receiveShadow=true;scene.add(floor);
-const grid=new THREE.GridHelper(24,24,0x1a3c2b,0x0e1f17);grid.position.y=.01;scene.add(grid);
-function trace(x,z,sx,sz){const m=new THREE.Mesh(new THREE.BoxGeometry(sx,.035,sz),new THREE.MeshStandardMaterial({color:0xb87333,emissive:0x5a2508,emissiveIntensity:.9,roughness:.35,metalness:.75}));m.position.set(x,.04,z);m.receiveShadow=true;scene.add(m)}
-trace(0,0,18,.12);trace(-4,2.8,.12,8);trace(4.2,-2.2,.12,7);trace(2.2,3.5,7,.1);trace(-3.4,-3.6,6,.1);
-function chip(x,z,sx,sz){const b=new THREE.Mesh(new THREE.BoxGeometry(sx,.28,sz),new THREE.MeshStandardMaterial({color:0x1b1b1b,roughness:.85,metalness:.25}));b.position.set(x,.16,z);b.castShadow=true;b.receiveShadow=true;scene.add(b)}
-chip(-5,-2.5,1.4,.9);chip(5.2,2.4,1.8,1.1);chip(0,4.4,2.2,.8);
+        const camera = new THREE.PerspectiveCamera(
+            60,
+            window.innerWidth / (window.innerHeight - 100),
+            0.1,
+            1000
+        );
+        camera.position.set(0, 2, 3);
+        camera.lookAt(0, 0, 0);
 
-const aoiGroup=new THREE.Group();
-const aoiBody=new THREE.Mesh(new THREE.BoxGeometry(1.1,.45,.8),new THREE.MeshStandardMaterial({color:0x444444,roughness:.45,metalness:.65}));aoiBody.castShadow=true;aoiGroup.add(aoiBody);
-const lens=new THREE.Mesh(new THREE.SphereGeometry(.16,24,16),new THREE.MeshStandardMaterial({color:0xff0033,emissive:0xff0033,emissiveIntensity:2.2}));lens.position.set(0,-.03,-.42);aoiGroup.add(lens);
-const aoiLight=new THREE.SpotLight(0xff0033,3.8,8,Math.PI/7,.45,1.2);aoiLight.position.set(0,-.1,-.45);aoiLight.target.position.set(0,-1,-4);aoiGroup.add(aoiLight);aoiGroup.add(aoiLight.target);aoiGroup.position.set(3,2.2,-3);scene.add(aoiGroup);
+        const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
+        renderer.setSize(window.innerWidth, window.innerHeight - 100);
+        renderer.setClearColor(0x000000);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFShadowShadowMap;
 
-let player=new THREE.Group();scene.add(player);
-const loader=new GLTFLoader();
-loader.load('./R3WORK.glb',gltf=>{
-  const model=gltf.scene;
-  model.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true}});
-  const box=new THREE.Box3().setFromObject(model),size=new THREE.Vector3(),center=new THREE.Vector3();box.getSize(size);box.getCenter(center);
-  const scale=1.55/Math.max(size.x,size.y,size.z);model.scale.setScalar(scale);model.position.sub(center.multiplyScalar(scale));model.rotation.y=Math.PI;
-  player.add(model);player.position.set(-6,.08,0);log('R3-W0RK cargado desde GLB. Modelo activo.');
-},undefined,err=>{console.error(err);log('ERROR: No se pudo cargar ./R3WORK.glb. Verifica nombre y ubicacion.')});
+        // ===== LIGHTING =====
+        const ambientLight = new THREE.AmbientLight(0x666666);
+        scene.add(ambientLight);
 
-addEventListener('keydown',e=>keys[e.code]=true);addEventListener('keyup',e=>keys[e.code]=false);
-function bindTouch(id,code,tapFn=null){const el=document.getElementById(id);const down=e=>{e.preventDefault();el.classList.add('active');keys[code]=true;if(tapFn)tapFn()};const up=e=>{e.preventDefault();el.classList.remove('active');keys[code]=false};el.addEventListener('touchstart',down,{passive:false});el.addEventListener('touchend',up,{passive:false});el.addEventListener('touchcancel',up,{passive:false});el.addEventListener('mousedown',down);el.addEventListener('mouseup',up);el.addEventListener('mouseleave',up)}
-bindTouch('up','KeyW');bindTouch('left','KeyA');bindTouch('right','KeyD');bindTouch('down','KeyS');bindTouch('dash','ShiftLeft');bindTouch('flux','Space',()=>useFlux());bindTouch('use','KeyE',()=>log('Rework interaction pending. Banco no conectado en v2.0.'));
-document.getElementById('startBtn').addEventListener('click',()=>{started=true;menu.style.display='none';log('Secuencia 3D iniciada. R3-W0RK operativo.')});
-function useFlux(){if(!started)return;fluxTimer=180;risk=Math.max(0,risk-45);log('Flux cloud deployed. AOI optical confidence degraded.')}
-function hud(){document.getElementById('integrityFill').style.width=integrity+'%';document.getElementById('signalFill').style.width=signal+'%';document.getElementById('riskFill').style.width=risk+'%'}
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        directionalLight.position.set(5, 8, 5);
+        directionalLight.castShadow = true;
+        directionalLight.shadow.mapSize.width = 2048;
+        directionalLight.shadow.mapSize.height = 2048;
+        scene.add(directionalLight);
 
-function animate(){requestAnimationFrame(animate);const t=performance.now()*.001;
- aoiGroup.position.x=3+Math.sin(t*.8)*2.4;aoiGroup.rotation.y=Math.sin(t*.8)*.6;copperLight.intensity=2.3+Math.sin(t*3)*.4;
- if(started){const move=new THREE.Vector3();if(keys.KeyW||keys.ArrowUp)move.z-=1;if(keys.KeyS||keys.ArrowDown)move.z+=1;if(keys.KeyA||keys.ArrowLeft)move.x-=1;if(keys.KeyD||keys.ArrowRight)move.x+=1;
-  if(move.lengthSq()>0){move.normalize();const speed=(keys.ShiftLeft||keys.ShiftRight)&&signal>2?.105:.055;if((keys.ShiftLeft||keys.ShiftRight)&&signal>2)signal=Math.max(0,signal-.22);player.position.add(move.multiplyScalar(speed));const targetRot=Math.atan2(move.x,move.z);player.rotation.y=THREE.MathUtils.lerp(player.rotation.y,targetRot,.16)}else signal=Math.min(100,signal+.04);
-  player.position.x=THREE.MathUtils.clamp(player.position.x,-9,9);player.position.z=THREE.MathUtils.clamp(player.position.z,-9,9);
-  const dx=player.position.x-aoiGroup.position.x,dz=player.position.z-aoiGroup.position.z,d=Math.sqrt(dx*dx+dz*dz);if(d<4.5&&fluxTimer<=0){risk=Math.min(100,risk+.35);if(risk>80)integrity=Math.max(0,integrity-.08)}else risk=Math.max(0,risk-.18);if(fluxTimer>0)fluxTimer--;
-  const desired=new THREE.Vector3(player.position.x+6.5,6.4,player.position.z+7.2);camera.position.lerp(desired,.045);camera.lookAt(player.position.x,.5,player.position.z);player.position.y=.08+Math.sin(t*3.2)*.018}
- hud();renderer.render(scene,camera)}
-addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
-animate();
-</script>
+        const pointLight = new THREE.PointLight(0x00ff00, 0.5);
+        pointLight.position.set(0, 2, 2);
+        scene.add(pointLight);
+
+        // ===== GROUND =====
+        const groundGeom = new THREE.PlaneGeometry(20, 20);
+        const groundMat = new THREE.MeshStandardMaterial({
+            color: 0x0a1a0a,
+            metalness: 0.3,
+            roughness: 0.7
+        });
+        const ground = new THREE.Mesh(groundGeom, groundMat);
+        ground.rotation.x = -Math.PI / 2;
+        ground.receiveShadow = true;
+        ground.position.y = -0.1;
+        scene.add(ground);
+
+        const gridHelper = new THREE.GridHelper(20, 20, 0x00ff00, 0x003300);
+        gridHelper.position.y = 0;
+        scene.add(gridHelper);
+
+        // ===== GAME STATE =====
+        const gameState = {
+            model: null,
+            x: 0,
+            y: 0,
+            vx: 0,
+            vy: 0,
+            speed: 0.05,
+            dashing: false,
+            hidden: false,
+            state: 'IDLE',
+            health: CONFIG.stats.health,
+            signal: CONFIG.stats.signal,
+            aoiRisk: CONFIG.stats.aoiRisk,
+            flux: CONFIG.stats.flux,
+            animTime: 0,
+            direction: 1,
+            frameCount: 0
+        };
+
+        // ===== LOAD MODEL =====
+        const loader = new THREE.GLTFLoader();
+        let modelLoaded = false;
+
+        function loadModel(paths, index = 0) {
+            if (index >= paths.length) {
+                showError('No se encontró R3WORK.glb. Asegúrate de que el archivo esté en el mismo directorio.');
+                return;
+            }
+
+            loader.load(
+                paths[index],
+                onModelLoaded,
+                onProgress,
+                () => loadModel(paths, index + 1)
+            );
+        }
+
+        function onModelLoaded(gltf) {
+            modelLoaded = true;
+            gameState.model = gltf.scene;
+            gameState.model.position.set(0, 0, 0);
+            gameState.model.scale.set(1, 1, 1);
+            gameState.model.castShadow = true;
+            gameState.model.receiveShadow = true;
+
+            gameState.model.traverse((node) => {
+                if (node.isMesh) {
+                    node.castShadow = true;
+                    node.receiveShadow = true;
+                }
+            });
+
+            scene.add(gameState.model);
+            document.getElementById('loading').classList.add('hidden');
+            animate();
+        }
+
+        function onProgress(event) {
+            if (event.lengthComputable) {
+                const progress = (event.loaded / event.total) * 100;
+                document.querySelector('.loading-bar-fill').style.width = progress + '%';
+            }
+        }
+
+        function showError(msg) {
+            document.getElementById('loading').innerHTML = `
+                <div style="color: #f60;">ERROR</div>
+                <div style="font-size: 11px; margin-top: 10px;">${msg}</div>
+            `;
+        }
+
+        // ===== INPUT =====
+        const keys = {};
+        window.addEventListener('keydown', (e) => {
+            keys[e.key.toLowerCase()] = true;
+            if (e.key === ' ') {
+                e.preventDefault();
+                jump();
+            }
+            if (e.key.toLowerCase() === 'shift') {
+                dash();
+            }
+            if (e.key.toLowerCase() === 'e') {
+                toggleHide();
+            }
+            if (e.key.toLowerCase() === 'r') {
+                repair();
+            }
+        });
+        window.addEventListener('keyup', (e) => {
+            keys[e.key.toLowerCase()] = false;
+        });
+
+        // ===== ABILITIES =====
+        function jump() {
+            if (gameState.model) {
+                gameState.model.position.y += 0.3;
+                setTimeout(() => {
+                    if (gameState.model) gameState.model.position.y = 0;
+                }, 200);
+            }
+        }
+
+        function dash() {
+            if (gameState.flux > 20 && !gameState.dashing) {
+                gameState.dashing = true;
+                gameState.flux = Math.max(0, gameState.flux - 25);
+                setTimeout(() => {
+                    gameState.dashing = false;
+                }, 300);
+            }
+        }
+
+        function toggleHide() {
+            gameState.hidden = !gameState.hidden;
+        }
+
+        function repair() {
+            if (gameState.flux > 10) {
+                gameState.health = Math.min(100, gameState.health + 30);
+                gameState.flux = Math.max(0, gameState.flux - 15);
+            }
+        }
+
+        // ===== UPDATE =====
+        function update() {
+            if (!gameState.model) return;
+
+            gameState.frameCount++;
+
+            // Movement
+            gameState.vx = 0;
+            if (keys['a'] || keys['arrowleft']) {
+                gameState.vx = -gameState.speed;
+                gameState.direction = -1;
+            }
+            if (keys['d'] || keys['arrowright']) {
+                gameState.vx = gameState.speed;
+                gameState.direction = 1;
+            }
+
+            gameState.x += gameState.vx;
+            gameState.x = Math.max(CONFIG.worldBounds.min, Math.min(CONFIG.worldBounds.max, gameState.x));
+            gameState.model.position.x = gameState.x;
+
+            // State machine
+            if (Math.abs(gameState.vx) > 0.01) {
+                gameState.state = 'WALK';
+                gameState.animTime += 0.05;
+            } else {
+                gameState.state = 'IDLE';
+                gameState.animTime = 0;
+            }
+
+            if (gameState.dashing) {
+                gameState.state = 'DASH';
+            }
+
+            if (gameState.hidden) {
+                gameState.state = 'HIDE';
+            }
+
+            // Stat degradation
+            if (gameState.state === 'WALK') {
+                gameState.health -= 0.01;
+                gameState.aoiRisk += 0.005;
+            }
+            if (gameState.state === 'DASH') {
+                gameState.health -= 0.03;
+                gameState.aoiRisk += 0.02;
+                gameState.flux -= 0.02;
+            }
+
+            // Recovery
+            gameState.signal = Math.min(100, gameState.signal + 0.01);
+            if (gameState.hidden) {
+                gameState.aoiRisk = Math.max(0, gameState.aoiRisk - 0.05);
+            }
+
+            // Clamp
+            gameState.health = Math.max(0, Math.min(100, gameState.health));
+            gameState.signal = Math.max(0, Math.min(100, gameState.signal));
+            gameState.aoiRisk = Math.max(0, Math.min(100, gameState.aoiRisk));
+            gameState.flux = Math.max(0, Math.min(100, gameState.flux));
+
+            // Model animation
+            gameState.model.rotation.y = gameState.direction === 1 ? 0 : Math.PI;
+
+            if (gameState.state === 'IDLE') {
+                gameState.model.position.y = Math.sin(Date.now() * 0.001) * 0.1;
+            }
+
+            if (gameState.state === 'WALK') {
+                gameState.model.position.y = Math.sin(gameState.animTime) * 0.15;
+            }
+
+            if (gameState.dashing) {
+                gameState.x += gameState.direction * 0.3;
+                gameState.model.position.x = gameState.x;
+                gameState.model.position.y = Math.cos(Date.now() * 0.01) * 0.2;
+            }
+
+            if (gameState.hidden) {
+                gameState.model.scale.set(0.7, 0.7, 0.7);
+                gameState.model.position.y = -0.3;
+            } else {
+                gameState.model.scale.set(1, 1, 1);
+            }
+
+            updateHUD();
+            updateDebug();
+        }
+
+        // ===== HUD =====
+        function updateHUD() {
+            document.getElementById('integrityFill').style.width = gameState.health + '%';
+            document.getElementById('integrityValue').textContent = Math.round(gameState.health) + '%';
+
+            document.getElementById('signalFill').style.width = gameState.signal + '%';
+            document.getElementById('signalValue').textContent = Math.round(gameState.signal) + '%';
+
+            document.getElementById('aoiFill').style.width = gameState.aoiRisk + '%';
+            document.getElementById('aoiValue').textContent = Math.round(gameState.aoiRisk) + '%';
+
+            document.getElementById('stateValue').textContent = gameState.state;
+
+            document.getElementById('fluxFill').style.width = gameState.flux + '%';
+            document.getElementById('fluxValue').textContent = Math.round(gameState.flux) + '%';
+        }
+
+        function updateDebug() {
+            const debug = document.getElementById('debug');
+            debug.innerHTML = `
+FRAME: ${gameState.frameCount}<br>
+POS: ${gameState.x.toFixed(2)}<br>
+STATE: ${gameState.state}<br>
+HIDDEN: ${gameState.hidden ? 'YES' : 'NO'}<br>
+HEALTH: ${Math.round(gameState.health)}%<br>
+FLUX: ${Math.round(gameState.flux)}%
+            `;
+        }
+
+        // ===== ANIMATION LOOP =====
+        function animate() {
+            update();
+            renderer.render(scene, camera);
+            requestAnimationFrame(animate);
+        }
+
+        // ===== RESPONSIVE =====
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / (window.innerHeight - 100);
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight - 100);
+        });
+
+        // ===== START =====
+        loadModel(CONFIG.modelPaths);
+    </script>
 </body>
 </html>
