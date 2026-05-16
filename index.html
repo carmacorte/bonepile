@@ -3,40 +3,351 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no" />
-<title>BONEPILE — R3-W0RK 3D</title>
+<title>BONEPILE — R3-W0RK 3D Adventure Prototype</title>
+
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
 
+:root{
+  --bg:#020403;
+  --panel:rgba(5,8,8,.82);
+  --green:#9dffb5;
+  --green-dim:#5a8a6a;
+  --orange:#ff6b35;
+  --blue:#00a8ff;
+  --red:#ff0033;
+  --copper:#b87333;
+  --bone:#d0d0d0;
+}
+
 *{box-sizing:border-box;margin:0;padding:0}
-html,body{width:100%;height:100%;overflow:hidden;background:#030504;color:#c8c8c8;font-family:'Share Tech Mono',monospace;touch-action:none}
-#game{position:fixed;inset:0;background:#020303}
-#hud{position:fixed;inset:0;pointer-events:none;z-index:10}
-.top-hud{position:absolute;top:18px;left:18px;display:flex;gap:12px}
-.stat{width:150px;background:rgba(5,8,8,.78);border:1px solid rgba(90,138,106,.75);padding:10px 12px;box-shadow:0 0 18px rgba(26,60,43,.25)}
-.stat-label{color:#7fb18d;font-size:12px;letter-spacing:3px;margin-bottom:8px}
-.bar{height:8px;background:#151817;overflow:hidden}.fill{height:100%;transition:width .2s}
-#integrityFill{width:100%;background:#ff6b35}#signalFill{width:100%;background:#00a8ff}#riskFill{width:0%;background:#ff0033}
-.title{position:absolute;top:18px;right:22px;text-align:right;color:#b87333;letter-spacing:3px;font-size:16px;text-shadow:0 0 8px rgba(184,115,51,.5)}
-.subtitle{color:#5a8a6a;font-size:11px;margin-top:4px;letter-spacing:1px}
-.log{position:absolute;left:18px;bottom:22px;width:min(620px,calc(100vw - 36px));min-height:52px;padding:12px 16px;background:rgba(5,8,8,.82);border-left:3px solid #ff6b35;color:#b8b8b8;font-size:14px;line-height:1.5}
-#menu{position:fixed;inset:0;z-index:20;display:flex;flex-direction:column;justify-content:center;align-items:center;background:rgba(2,3,3,.84);text-align:center}
-.main-title{font-size:70px;letter-spacing:12px;color:#cfcfcf;text-shadow:0 0 18px rgba(255,255,255,.16),0 8px 0 #191919}
-.main-sub{margin-top:18px;padding-bottom:12px;border-bottom:1px solid #2a4a3a;color:#7fb18d;letter-spacing:6px;font-size:15px}
-.quote{margin:35px 0;max-width:620px;color:#8a8a8a;font-style:italic;line-height:1.6}
-button{font-family:'Share Tech Mono',monospace;background:rgba(5,8,8,.6);color:#ff6b35;border:1px solid #ff6b35;padding:14px 36px;letter-spacing:4px;font-size:15px;cursor:pointer}
-button:active{background:rgba(255,107,53,.18)}
-#touch{display:none;position:fixed;inset:0;z-index:15;pointer-events:none}
+
+html,body{
+  width:100%;
+  height:100%;
+  overflow:hidden;
+  background:var(--bg);
+  color:#c8c8c8;
+  font-family:'Share Tech Mono',monospace;
+  touch-action:none;
+  -webkit-user-select:none;
+  user-select:none;
+}
+
+#game{
+  position:fixed;
+  inset:0;
+  background:
+    radial-gradient(circle at 50% 45%, rgba(31,55,44,.22), transparent 42%),
+    radial-gradient(circle at 80% 20%, rgba(255,107,53,.08), transparent 30%),
+    #020303;
+}
+
+#hud{
+  position:fixed;
+  inset:0;
+  pointer-events:none;
+  z-index:10;
+}
+
+.top-hud{
+  position:absolute;
+  top:18px;
+  left:18px;
+  display:flex;
+  gap:12px;
+  align-items:flex-start;
+}
+
+.stat{
+  width:150px;
+  background:var(--panel);
+  border:1px solid rgba(90,138,106,.78);
+  padding:10px 12px;
+  box-shadow:0 0 20px rgba(26,60,43,.25), inset 0 0 18px rgba(0,0,0,.55);
+  backdrop-filter:blur(3px);
+}
+
+.stat-label{
+  color:var(--green);
+  font-size:12px;
+  letter-spacing:3px;
+  margin-bottom:8px;
+  text-shadow:0 0 8px rgba(157,255,181,.22);
+}
+
+.bar{
+  height:8px;
+  background:#151817;
+  overflow:hidden;
+  border:1px solid rgba(255,255,255,.04);
+}
+
+.fill{
+  height:100%;
+  transition:width .18s ease-out;
+}
+
+#integrityFill{width:100%;background:linear-gradient(90deg,#ff6b35,#ff9a5b)}
+#signalFill{width:100%;background:linear-gradient(90deg,#0077ff,#00c8ff)}
+#riskFill{width:0%;background:linear-gradient(90deg,#ff0033,#ff7b7b)}
+#fluxFill{width:100%;background:linear-gradient(90deg,#00ff66,#a2ffb2)}
+
+.title{
+  position:absolute;
+  top:18px;
+  right:22px;
+  text-align:right;
+  color:var(--copper);
+  letter-spacing:3px;
+  font-size:16px;
+  text-shadow:0 0 8px rgba(184,115,51,.5);
+}
+
+.subtitle{
+  color:var(--green-dim);
+  font-size:11px;
+  margin-top:4px;
+  letter-spacing:1px;
+}
+
+.log{
+  position:absolute;
+  left:18px;
+  bottom:22px;
+  width:min(700px,calc(100vw - 36px));
+  min-height:58px;
+  padding:12px 16px;
+  background:rgba(5,8,8,.84);
+  border-left:3px solid var(--orange);
+  color:#e4e4e4;
+  font-size:14px;
+  line-height:1.5;
+  box-shadow:0 0 18px rgba(0,0,0,.45);
+}
+
+#mission{
+  position:absolute;
+  right:22px;
+  bottom:22px;
+  min-width:290px;
+  background:rgba(5,8,8,.74);
+  border:1px solid rgba(90,138,106,.55);
+  padding:12px 14px;
+  text-align:left;
+  color:#9aa69d;
+  font-size:12px;
+  line-height:1.45;
+}
+
+#mission b{
+  color:var(--green);
+  letter-spacing:2px;
+  font-weight:400;
+}
+
+#menu{
+  position:fixed;
+  inset:0;
+  z-index:20;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  align-items:center;
+  background:rgba(2,3,3,.45);
+  backdrop-filter:blur(2px);
+  text-align:center;
+  transition:opacity .3s ease;
+}
+
+.main-title{
+  font-size:76px;
+  letter-spacing:13px;
+  color:#d8d8d8;
+  text-shadow:
+    0 0 18px rgba(255,255,255,.28),
+    0 0 44px rgba(255,255,255,.08),
+    0 8px 0 #191919;
+}
+
+.main-sub{
+  margin-top:18px;
+  padding-bottom:12px;
+  border-bottom:1px solid #2a4a3a;
+  color:var(--green);
+  letter-spacing:6px;
+  font-size:15px;
+}
+
+.quote{
+  margin:35px 0;
+  max-width:680px;
+  color:#aaa;
+  font-style:italic;
+  line-height:1.6;
+}
+
+button{
+  font-family:'Share Tech Mono',monospace;
+  background:rgba(12,12,18,.82);
+  color:var(--orange);
+  border:1px solid var(--orange);
+  padding:14px 36px;
+  letter-spacing:4px;
+  font-size:15px;
+  cursor:pointer;
+  box-shadow:0 0 22px rgba(255,107,53,.35);
+}
+
+button:active{
+  background:rgba(255,107,53,.18);
+}
+
+#touch{
+  display:none;
+  position:fixed;
+  inset:0;
+  z-index:15;
+  pointer-events:none;
+}
+
 #touch.visible{display:block}
-.dpad{position:absolute;left:28px;bottom:28px;width:162px;height:162px;pointer-events:auto}
-.touch-btn{position:absolute;width:58px;height:58px;display:flex;justify-content:center;align-items:center;border:1px solid rgba(255,107,53,.75);color:#ff6b35;background:rgba(6,8,8,.66);font-size:22px;user-select:none;-webkit-user-select:none}
-#up{left:52px;top:0}#left{left:0;top:52px}#right{left:104px;top:52px}#down{left:52px;top:104px}
-.actions{position:absolute;right:28px;bottom:34px;width:270px;height:150px;pointer-events:auto}
-.action{position:absolute;width:92px;height:60px;border-radius:14px;border:1px solid rgba(90,138,106,.85);color:#7fb18d;background:rgba(6,8,8,.66);display:flex;justify-content:center;align-items:center;letter-spacing:3px;font-size:13px;user-select:none;-webkit-user-select:none}
-#dash{right:108px;top:0}#flux{right:0;top:0;color:#00ff41;border-color:#00ff41}#use{right:54px;top:78px;color:#ff6b35;border-color:#ff6b35;width:120px}
-.active{background:rgba(255,107,53,.25)!important;box-shadow:0 0 18px rgba(255,107,53,.45)}
-.crt:before{content:"";position:fixed;inset:0;z-index:30;pointer-events:none;background:linear-gradient(rgba(18,16,16,0) 50%,rgba(0,0,0,.14) 50%),linear-gradient(90deg,rgba(255,0,0,.022),rgba(0,255,0,.01),rgba(0,0,255,.022));background-size:100% 2px,3px 100%;opacity:.68}
+
+.dpad{
+  position:absolute;
+  left:28px;
+  bottom:28px;
+  width:174px;
+  height:174px;
+  pointer-events:auto;
+}
+
+.touch-btn{
+  position:absolute;
+  width:64px;
+  height:64px;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  border:1px solid rgba(255,107,53,.75);
+  color:var(--orange);
+  background:rgba(6,8,8,.66);
+  font-size:24px;
+  user-select:none;
+  -webkit-user-select:none;
+  box-shadow:0 0 12px rgba(255,107,53,.12);
+}
+
+#up{left:55px;top:0}
+#left{left:0;top:55px}
+#right{left:110px;top:55px}
+#down{left:55px;top:110px}
+
+.actions{
+  position:absolute;
+  right:28px;
+  bottom:34px;
+  width:286px;
+  height:162px;
+  pointer-events:auto;
+}
+
+.action{
+  position:absolute;
+  width:96px;
+  height:64px;
+  border-radius:15px;
+  border:1px solid rgba(90,138,106,.85);
+  color:var(--green);
+  background:rgba(6,8,8,.66);
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  letter-spacing:3px;
+  font-size:13px;
+  user-select:none;
+  -webkit-user-select:none;
+  text-align:center;
+}
+
+#jump{right:190px;top:0;color:#00c8ff;border-color:#00c8ff}
+#dash{right:96px;top:0}
+#flux{right:0;top:0;color:#00ff41;border-color:#00ff41}
+#use{right:55px;top:82px;color:var(--orange);border-color:var(--orange);width:132px}
+
+.active{
+  background:rgba(255,107,53,.25)!important;
+  box-shadow:0 0 18px rgba(255,107,53,.45);
+}
+
+#debug{
+  position:absolute;
+  left:18px;
+  top:86px;
+  color:#65806d;
+  font-size:11px;
+  line-height:1.4;
+  background:rgba(0,0,0,.28);
+  padding:8px 10px;
+  border:1px solid rgba(90,138,106,.25);
+  display:none;
+}
+
+.crt:before{
+  content:"";
+  position:fixed;
+  inset:0;
+  z-index:30;
+  pointer-events:none;
+  background:
+    linear-gradient(rgba(18,16,16,0) 50%,rgba(0,0,0,.13) 50%),
+    linear-gradient(90deg,rgba(255,0,0,.018),rgba(0,255,0,.009),rgba(0,0,255,.018));
+  background-size:100% 2px,3px 100%;
+  opacity:.36;
+}
+
+#loadingChip{
+  position:absolute;
+  top:50%;
+  left:50%;
+  transform:translate(-50%,-50%);
+  width:320px;
+  padding:22px;
+  border:1px solid rgba(90,138,106,.5);
+  background:rgba(0,0,0,.44);
+  text-align:center;
+  color:var(--green);
+  letter-spacing:2px;
+  font-size:13px;
+  z-index:12;
+  pointer-events:none;
+}
+
+#loadingBar{
+  margin-top:14px;
+  height:6px;
+  background:#0b1510;
+  border:1px solid rgba(90,138,106,.45);
+}
+
+#loadingBar span{
+  display:block;
+  height:100%;
+  width:8%;
+  background:var(--green);
+  box-shadow:0 0 12px rgba(0,255,100,.4);
+}
+
 @media (hover:none),(pointer:coarse),(max-width:900px){
-  .main-title{font-size:48px;letter-spacing:8px}.top-hud{gap:8px;top:12px;left:12px}.stat{width:116px;padding:8px}.stat-label{font-size:10px;letter-spacing:2px}.title{display:none}.log{font-size:12px;bottom:12px;max-width:48vw}
+  .main-title{font-size:52px;letter-spacing:8px}
+  .main-sub{font-size:12px;letter-spacing:4px}
+  .quote{max-width:82vw;margin:28px 0}
+  .top-hud{top:14px;left:12px;gap:8px}
+  .stat{width:112px;padding:8px}
+  .stat-label{font-size:10px;letter-spacing:2px}
+  .title{display:none}
+  .log{font-size:12px;bottom:12px;max-width:48vw}
+  #mission{display:none}
 }
 </style>
 </head>
@@ -49,19 +360,50 @@ button:active{background:rgba(255,107,53,.18)}
     <div class="stat"><div class="stat-label">INTEGRIDAD</div><div class="bar"><div class="fill" id="integrityFill"></div></div></div>
     <div class="stat"><div class="stat-label">SEÑAL</div><div class="bar"><div class="fill" id="signalFill"></div></div></div>
     <div class="stat"><div class="stat-label">RIESGO AOI</div><div class="bar"><div class="fill" id="riskFill"></div></div></div>
+    <div class="stat"><div class="stat-label">FLUX</div><div class="bar"><div class="fill" id="fluxFill"></div></div></div>
   </div>
-  <div class="title">BONEPILE 3D PROTOTYPE<div class="subtitle">R3-W0RK // UNREGISTERED NODE</div></div>
+
+  <div class="title">
+    BONEPILE V3.0
+    <div class="subtitle">3D ADVENTURE CAMERA // R3-W0RK</div>
+  </div>
+
+  <div id="debug"></div>
+
   <div class="log" id="log">&gt; Inicializando WebGL. Esperando GLB.</div>
+
+  <div id="mission">
+    <b>OBJETIVO</b><br>
+    Explora la placa. Evita el AOI. Usa FLUX para degradar su confianza óptica.<br><br>
+    <b>CONTROLES</b><br>
+    A/D mover · W/S profundidad · SPACE saltar · SHIFT dash · E hide/rework
+  </div>
+</div>
+
+<div id="loadingChip">
+  INICIALIZANDO R3-W0RK...<br>
+  CARGANDO PROTOCOLO DE SUPERVIVENCIA
+  <div id="loadingBar"><span id="loadingFill"></span></div>
 </div>
 
 <div id="touch">
-  <div class="dpad"><div class="touch-btn" id="up">▲</div><div class="touch-btn" id="left">◀</div><div class="touch-btn" id="right">▶</div><div class="touch-btn" id="down">▼</div></div>
-  <div class="actions"><div class="action" id="dash">DASH</div><div class="action" id="flux">FLUX</div><div class="action" id="use">E / USE</div></div>
+  <div class="dpad">
+    <div class="touch-btn" id="up">▲</div>
+    <div class="touch-btn" id="left">◀</div>
+    <div class="touch-btn" id="right">▶</div>
+    <div class="touch-btn" id="down">▼</div>
+  </div>
+  <div class="actions">
+    <div class="action" id="jump">JUMP</div>
+    <div class="action" id="dash">DASH</div>
+    <div class="action" id="flux">FLUX</div>
+    <div class="action" id="use">E / USE</div>
+  </div>
 </div>
 
 <div id="menu">
   <div class="main-title">BONEPILE</div>
-  <div class="main-sub">// R3-W0RK GLB INTEGRATION //</div>
+  <div class="main-sub">// R3-W0RK ADVENTURE PROTOTYPE //</div>
   <div class="quote">“No necesitamos ser perfectos. Solo necesitamos seguir funcionando.”<br>— R3-W0RK</div>
   <button id="startBtn">INICIAR 3D</button>
 </div>
@@ -74,176 +416,242 @@ const container = document.getElementById('game');
 const logBox = document.getElementById('log');
 const menu = document.getElementById('menu');
 const touch = document.getElementById('touch');
-const keys = {};
+const loadingChip = document.getElementById('loadingChip');
+const loadingFill = document.getElementById('loadingFill');
+const debugBox = document.getElementById('debug');
 
+const keys = {};
 let started = false;
 let integrity = 100;
 let signal = 100;
 let risk = 0;
+let flux = 100;
 let fluxTimer = 0;
 let playerReady = false;
+let hiddenMode = false;
+let gameTime = 0;
 
 function log(m){ logBox.innerHTML = '&gt; ' + m; }
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x050807);
-// FIX: fog menos agresivo para no oscurecer el modelo.
-scene.fog = new THREE.FogExp2(0x050807, 0.018);
+scene.background = new THREE.Color(0x060908);
+scene.fog = new THREE.FogExp2(0x060908, 0.0048);
 
-const camera = new THREE.PerspectiveCamera(50, innerWidth / innerHeight, 0.1, 150);
-// FIX: cámara más cerca y centrada para validar escala del GLB.
-camera.position.set(5.6, 4.8, 6.2);
-camera.lookAt(0, 0.8, 0);
+const camera = new THREE.PerspectiveCamera(58, innerWidth / innerHeight, 0.1, 160);
+camera.position.set(0, 3.1, 7.2);
+camera.lookAt(0, 1.5, 0);
 
 const renderer = new THREE.WebGLRenderer({ antialias:true, powerPreference:'high-performance' });
 renderer.setSize(innerWidth, innerHeight);
 renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-// FIX: salida de color y exposición más visible en móvil.
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.55;
+renderer.toneMappingExposure = 3.35;
 container.appendChild(renderer.domElement);
 
-// LIGHTING FIX: más luz ambiental + key light más fuerte.
-scene.add(new THREE.HemisphereLight(0xb6cbb9, 0x111111, 2.35));
+// Lighting
+scene.add(new THREE.HemisphereLight(0xe8ffee, 0x222222, 5.35));
 
-const keyLight = new THREE.DirectionalLight(0xffffff, 4.0);
+const keyLight = new THREE.DirectionalLight(0xffffff, 8.8);
 keyLight.position.set(4, 9, 5);
 keyLight.castShadow = true;
 keyLight.shadow.mapSize.set(2048, 2048);
 keyLight.shadow.camera.near = 0.5;
-keyLight.shadow.camera.far = 30;
+keyLight.shadow.camera.far = 35;
+keyLight.shadow.camera.left = -14;
+keyLight.shadow.camera.right = 14;
+keyLight.shadow.camera.top = 14;
+keyLight.shadow.camera.bottom = -14;
 scene.add(keyLight);
 
-const fillLight = new THREE.DirectionalLight(0x88aaff, 1.25);
+const fillLight = new THREE.DirectionalLight(0xaaccff, 4.2);
 fillLight.position.set(-5, 4, -3);
 scene.add(fillLight);
 
-const copperLight = new THREE.PointLight(0xff6b35, 4.0, 18);
+const rimLight = new THREE.DirectionalLight(0xff8a45, 3.2);
+rimLight.position.set(-2, 3, 5);
+scene.add(rimLight);
+
+const copperLight = new THREE.PointLight(0xff8a45, 7.8, 28);
 copperLight.position.set(-3, 1.8, 2);
 scene.add(copperLight);
 
-const greenLight = new THREE.PointLight(0x00ff66, 2.0, 14);
+const greenLight = new THREE.PointLight(0x00ff66, 4.8, 24);
 greenLight.position.set(3, 1.2, -2);
 scene.add(greenLight);
 
-const redLight = new THREE.PointLight(0xff0033, 1.8, 14);
+const redLight = new THREE.PointLight(0xff0033, 2.8, 18);
 redLight.position.set(4, 2.2, -3);
 scene.add(redLight);
 
-// PCB floor.
-const floor = new THREE.Mesh(
-  new THREE.PlaneGeometry(26, 26),
-  new THREE.MeshStandardMaterial({ color:0x07110d, roughness:0.72, metalness:0.18 })
-);
+// Materials
+const matPCB = new THREE.MeshStandardMaterial({ color:0x08130f, roughness:0.76, metalness:0.2 });
+const matCopper = new THREE.MeshStandardMaterial({ color:0xb87333, emissive:0x5a2508, emissiveIntensity:1.3, roughness:.34, metalness:.78 });
+const matPad = new THREE.MeshStandardMaterial({ color:0xd2b48c, emissive:0x3a2107, emissiveIntensity:.35, roughness:.45, metalness:.85 });
+const matDarkChip = new THREE.MeshStandardMaterial({ color:0x1b1b1b, roughness:.82, metalness:.25 });
+const matRework = new THREE.MeshStandardMaterial({ color:0x2a1c13, roughness:.85, metalness:.25 });
+const matAOI = new THREE.MeshStandardMaterial({ color:0x444444, roughness:.45, metalness:.65 });
+const matLens = new THREE.MeshStandardMaterial({ color:0xff0033, emissive:0xff0033, emissiveIntensity:3.0 });
+
+// World group
+const world = new THREE.Group();
+scene.add(world);
+
+// PCB Floor
+const floor = new THREE.Mesh(new THREE.PlaneGeometry(34, 34), matPCB);
 floor.rotation.x = -Math.PI / 2;
 floor.receiveShadow = true;
-scene.add(floor);
+world.add(floor);
 
-const grid = new THREE.GridHelper(26, 26, 0x1a3c2b, 0x0e1f17);
-grid.position.y = 0.012;
-scene.add(grid);
+const grid = new THREE.GridHelper(34, 34, 0x1a3c2b, 0x0e1f17);
+grid.position.y = 0.014;
+world.add(grid);
 
 function trace(x,z,sx,sz){
-  const m = new THREE.Mesh(
-    new THREE.BoxGeometry(sx, .035, sz),
-    new THREE.MeshStandardMaterial({
-      color:0xb87333, emissive:0x5a2508, emissiveIntensity:1.15,
-      roughness:.35, metalness:.75
-    })
-  );
-  m.position.set(x,.04,z);
+  const m = new THREE.Mesh(new THREE.BoxGeometry(sx, .04, sz), matCopper);
+  m.position.set(x,.05,z);
   m.receiveShadow = true;
-  scene.add(m);
+  world.add(m);
+  return m;
 }
 
-trace(0,0,19,.12); trace(-4,2.8,.12,8); trace(4.2,-2.2,.12,7);
-trace(2.2,3.5,7,.1); trace(-3.4,-3.6,6,.1); trace(0,-5.2,12,.09);
+trace(0,0,25,.14);
+trace(-7,3.4,.14,10);
+trace(6,-2.2,.14,9);
+trace(2.2,4.8,11,.12);
+trace(-4.7,-4.8,9,.12);
+trace(0,-7.2,18,.11);
+trace(8,5.5,.12,7);
+trace(-10,-1.8,.12,7);
 
-function chip(x,z,sx,sz){
-  const b = new THREE.Mesh(
-    new THREE.BoxGeometry(sx,.28,sz),
-    new THREE.MeshStandardMaterial({ color:0x1b1b1b, roughness:.85, metalness:.25 })
-  );
-  b.position.set(x,.16,z);
+function pad(x,z,sx=.5,sz=.35){
+  const p = new THREE.Mesh(new THREE.BoxGeometry(sx,.045,sz), matPad);
+  p.position.set(x,.075,z);
+  p.receiveShadow = true;
+  world.add(p);
+}
+
+for(let i=-5;i<=5;i++) pad(i*1.1, -7.2, .42, .28);
+for(let i=-4;i<=4;i++) pad(-7, i*.9, .28, .42);
+for(let i=-3;i<=3;i++) pad(8, 5.5+i*.75, .28, .42);
+
+function chip(x,z,sx,sz,h=.32){
+  const b = new THREE.Mesh(new THREE.BoxGeometry(sx,h,sz), matDarkChip);
+  b.position.set(x,h/2,z);
   b.castShadow = true;
   b.receiveShadow = true;
-  scene.add(b);
+  world.add(b);
+  return b;
 }
-chip(-5,-2.5,1.4,.9); chip(5.2,2.4,1.8,1.1); chip(0,4.4,2.2,.8);
 
-// AOI placeholder.
+chip(-7.3,-2.5,1.8,1.0,.36);
+chip(7.6,2.4,2.4,1.3,.36);
+chip(0,6.0,3.1,1.0,.34);
+chip(-3.8,5.1,1.2,.8,.30);
+chip(4.2,-5.2,1.4,1.1,.34);
+
+function wall(x,z,sx,sz,h=.55){
+  const w = new THREE.Mesh(new THREE.BoxGeometry(sx,h,sz), matDarkChip);
+  w.position.set(x,h/2,z);
+  w.castShadow = true;
+  w.receiveShadow = true;
+  world.add(w);
+  colliders.push({x,z,sx,sz});
+  return w;
+}
+
+const colliders = [];
+wall(-9,2.2,3.8,.65,.65);
+wall(8,-4,4.2,.65,.65);
+wall(0,-10,5.4,.8,.55);
+
+// Rework station
+const rework = new THREE.Group();
+const reworkBase = new THREE.Mesh(new THREE.BoxGeometry(2.7,.45,1.35), matRework);
+reworkBase.castShadow = true;
+reworkBase.receiveShadow = true;
+rework.add(reworkBase);
+const lamp = new THREE.Mesh(new THREE.CylinderGeometry(.05,.05,1.0,16), matPad);
+lamp.position.set(-.9,.75,-.25);
+lamp.rotation.z = .35;
+rework.add(lamp);
+const lampHead = new THREE.Mesh(new THREE.SphereGeometry(.16,16,8), new THREE.MeshStandardMaterial({color:0xfff0ba, emissive:0xffdd88, emissiveIntensity:1.4}));
+lampHead.position.set(-.55,1.12,-.25);
+rework.add(lampHead);
+const reworkLight = new THREE.PointLight(0xffa45a, 3.2, 5);
+reworkLight.position.set(-.55,1.25,-.25);
+rework.add(reworkLight);
+rework.position.set(-5.2,0,5.3);
+world.add(rework);
+
+// AOI drone
 const aoiGroup = new THREE.Group();
-const aoiBody = new THREE.Mesh(
-  new THREE.BoxGeometry(1.1,.45,.8),
-  new THREE.MeshStandardMaterial({ color:0x444444, roughness:.45, metalness:.65 })
-);
-aoiBody.castShadow = true; aoiGroup.add(aoiBody);
-
-const lens = new THREE.Mesh(
-  new THREE.SphereGeometry(.16,24,16),
-  new THREE.MeshStandardMaterial({ color:0xff0033, emissive:0xff0033, emissiveIntensity:3.0 })
-);
-lens.position.set(0,-.03,-.42); aoiGroup.add(lens);
-
-const aoiLight = new THREE.SpotLight(0xff0033,5.2,9,Math.PI/7,.45,1.2);
-aoiLight.position.set(0,-.1,-.45);
-aoiLight.target.position.set(0,-1,-4);
-aoiGroup.add(aoiLight); aoiGroup.add(aoiLight.target);
-aoiGroup.position.set(3,2.2,-3);
+const aoiBody = new THREE.Mesh(new THREE.BoxGeometry(1.25,.5,.9), matAOI);
+aoiBody.castShadow = true;
+aoiGroup.add(aoiBody);
+const lens = new THREE.Mesh(new THREE.SphereGeometry(.17,24,16), matLens);
+lens.position.set(0,-.03,-.49);
+aoiGroup.add(lens);
+const aoiLight = new THREE.SpotLight(0xff0033,6.0,10,Math.PI/7,.45,1.2);
+aoiLight.position.set(0,-.1,-.55);
+aoiLight.target.position.set(0,-1,-5);
+aoiGroup.add(aoiLight);
+aoiGroup.add(aoiLight.target);
+aoiGroup.position.set(4,2.4,-4.2);
 scene.add(aoiGroup);
 
-// Player container.
+// Detection cone visual
+const coneGeo = new THREE.ConeGeometry(2.8, 6, 48, 1, true);
+const coneMat = new THREE.MeshBasicMaterial({color:0xff0033, transparent:true, opacity:.12, side:THREE.DoubleSide, depthWrite:false});
+const scanCone = new THREE.Mesh(coneGeo, coneMat);
+scanCone.rotation.x = Math.PI/2;
+scanCone.position.set(0,-1.6,-3.3);
+aoiGroup.add(scanCone);
+
+// Player container
 let player = new THREE.Group();
 scene.add(player);
+player.position.set(0,0,0);
+
+let velY = 0;
+let grounded = true;
+let coyote = 0;
+let dashCooldown = 0;
 
 function createFallbackPlayer(){
   const g = new THREE.Group();
-  const body = new THREE.Mesh(
-    new THREE.BoxGeometry(1.4,.28,1.0),
-    new THREE.MeshStandardMaterial({ color:0x2d2a24, roughness:.75, metalness:.42 })
-  );
+  const body = new THREE.Mesh(new THREE.BoxGeometry(1.4,.28,1.0), new THREE.MeshStandardMaterial({ color:0x2d2a24, roughness:.75, metalness:.42 }));
   body.castShadow = true; body.receiveShadow = true;
   g.add(body);
 
-  const led = new THREE.Mesh(
-    new THREE.SphereGeometry(.06,16,8),
-    new THREE.MeshStandardMaterial({ color:0x00ff66, emissive:0x00ff66, emissiveIntensity:2 })
-  );
-  led.position.set(.35,.18,-.25); g.add(led);
+  const led = new THREE.Mesh(new THREE.SphereGeometry(.08,16,8), new THREE.MeshStandardMaterial({ color:0x00ff66, emissive:0x00ff66, emissiveIntensity:2.4 }));
+  led.position.set(.35,.22,-.25); g.add(led);
 
   for(let i=0;i<8;i++){
-    const pinL = new THREE.Mesh(
-      new THREE.BoxGeometry(.08,.08,.18),
-      new THREE.MeshStandardMaterial({ color:0xb9a383, roughness:.4, metalness:.9 })
-    );
-    pinL.position.set(-.8, -.05, -.42 + i*.12);
+    const pinL = new THREE.Mesh(new THREE.BoxGeometry(.08,.08,.22), new THREE.MeshStandardMaterial({ color:0xb9a383, roughness:.4, metalness:.9 }));
+    pinL.position.set(-.82, -.05, -.42 + i*.12);
     g.add(pinL);
-
     const pinR = pinL.clone();
-    pinR.position.x = .8;
+    pinR.position.x = .82;
     g.add(pinR);
   }
   return g;
 }
 
-// Fallback visible immediately so the scene never looks frozen.
 const fallback = createFallbackPlayer();
-fallback.position.set(0,.3,0);
+fallback.scale.setScalar(3.2);
+fallback.position.set(0,1.25,0);
 player.add(fallback);
-player.position.set(0,0,0);
 log('Escena 3D activa. Cargando ./R3WORK.glb...');
 
-// GLB loading with safe fallback.
 const loader = new GLTFLoader();
 loader.load('./R3WORK.glb',
   (gltf)=>{
     try{
       player.remove(fallback);
       const model = gltf.scene;
-
       model.traverse((o)=>{
         if(o.isMesh){
           o.castShadow = true;
@@ -262,41 +670,45 @@ loader.load('./R3WORK.glb',
       box.getCenter(center);
 
       const maxDim = Math.max(size.x,size.y,size.z) || 1;
-      // FIX: modelo más grande para validación visual.
-      const scale = 4.0 / maxDim;
+      const scale = 9.5 / maxDim;
       model.scale.setScalar(scale);
 
-      // Recalcular centro después de escala, corregir posición al origen.
       const box2 = new THREE.Box3().setFromObject(model);
       const center2 = new THREE.Vector3();
       box2.getCenter(center2);
       model.position.sub(center2);
-      model.position.y += 1.15;
-
+      model.position.y += 2.4;
       model.rotation.y = Math.PI;
-      player.add(model);
 
-      player.position.set(0,0,0);
+      player.add(model);
       playerReady = true;
-      log('R3-W0RK GLB cargado. Scale fix aplicado. Inicia secuencia.');
+      loadingChip.style.display = 'none';
+      log('R3-W0RK GLB cargado. Cámara adventure lista.');
     }catch(e){
       console.error(e);
+      loadingChip.style.display = 'none';
       log('GLB cargó, pero falló al procesar. Usando fallback SOIC.');
     }
   },
   (xhr)=>{
     if(xhr.total){
       const p = Math.round((xhr.loaded / xhr.total) * 100);
+      loadingFill.style.width = p + '%';
       log('Cargando R3WORK.glb... ' + p + '%');
     }
   },
   (err)=>{
     console.error(err);
-    log('ERROR al cargar ./R3WORK.glb. Usando fallback. Verifica nombre exacto y mayúsculas.');
+    loadingChip.style.display = 'none';
+    log('ERROR al cargar ./R3WORK.glb. Usando fallback. Verifica nombre exacto.');
   }
 );
 
-addEventListener('keydown',e=>keys[e.code]=true);
+// Input
+addEventListener('keydown',e=>{
+  keys[e.code]=true;
+  if(e.code==='KeyF') debugBox.style.display = debugBox.style.display === 'none' ? 'block' : 'none';
+});
 addEventListener('keyup',e=>keys[e.code]=false);
 
 function bindTouch(id,code,tapFn=null){
@@ -310,9 +722,12 @@ function bindTouch(id,code,tapFn=null){
   el.addEventListener('mouseup',up);
   el.addEventListener('mouseleave',up);
 }
+
 bindTouch('up','KeyW'); bindTouch('left','KeyA'); bindTouch('right','KeyD'); bindTouch('down','KeyS');
-bindTouch('dash','ShiftLeft'); bindTouch('flux','Space',()=>useFlux());
-bindTouch('use','KeyE',()=>log('Rework interaction pending. Banco no conectado en v2.1.'));
+bindTouch('jump','Space',()=>jump());
+bindTouch('dash','ShiftLeft',()=>dash());
+bindTouch('flux','KeyQ',()=>useFlux());
+bindTouch('use','KeyE',()=>interact());
 
 document.addEventListener('touchmove', e=>{
   if(started) e.preventDefault();
@@ -320,35 +735,121 @@ document.addEventListener('touchmove', e=>{
 
 document.getElementById('startBtn').addEventListener('click',()=>{
   started = true;
-  menu.style.display = 'none';
+  menu.style.opacity = '0';
+  setTimeout(()=>{menu.style.display='none'},300);
   touch.classList.add('visible');
-  log(playerReady ? 'Secuencia 3D iniciada. R3-W0RK operativo.' : 'Secuencia iniciada. GLB aún cargando o usando fallback.');
+  log(playerReady ? 'Secuencia 3D iniciada. R3-W0RK operativo.' : 'Secuencia iniciada. Usando fallback mientras carga GLB.');
 });
 
-function useFlux(){
+function jump(){
   if(!started) return;
-  fluxTimer = 180;
-  risk = Math.max(0, risk - 45);
+  if(grounded || coyote > 0){
+    velY = 0.13;
+    grounded = false;
+    coyote = 0;
+    log('Jump impulse. Lead array flex nominal.');
+  }
+}
+
+function dash(){
+  if(!started || dashCooldown > 0 || signal < 10) return;
+  dashCooldown = 42;
+  signal = Math.max(0, signal - 12);
+  log('Solder Dash. Señal consumida.');
+}
+
+function useFlux(){
+  if(!started || flux < 18) return;
+  fluxTimer = 220;
+  flux = Math.max(0, flux - 18);
+  risk = Math.max(0, risk - 55);
   log('Flux cloud deployed. AOI optical confidence degraded.');
+}
+
+function interact(){
+  if(!started) return;
+  const dx = player.position.x - rework.position.x;
+  const dz = player.position.z - rework.position.z;
+  const d = Math.sqrt(dx*dx + dz*dz);
+
+  if(d < 2.5){
+    integrity = Math.min(100, integrity + 22);
+    signal = Math.min(100, signal + 28);
+    flux = Math.min(100, flux + 30);
+    log('Rework station engaged. Integridad, señal y flux restaurados.');
+  }else{
+    hiddenMode = !hiddenMode;
+    log(hiddenMode ? 'Hide mode activo. Firma visual reducida.' : 'Hide mode desactivado.');
+  }
 }
 
 function hud(){
   document.getElementById('integrityFill').style.width = integrity + '%';
   document.getElementById('signalFill').style.width = signal + '%';
   document.getElementById('riskFill').style.width = risk + '%';
+  document.getElementById('fluxFill').style.width = flux + '%';
+}
+
+function collisionCheck(nextX,nextZ){
+  for(const c of colliders){
+    if(nextX > c.x - c.sx/2 - .65 && nextX < c.x + c.sx/2 + .65 &&
+       nextZ > c.z - c.sz/2 - .65 && nextZ < c.z + c.sz/2 + .65){
+      return true;
+    }
+  }
+  return false;
+}
+
+function spawnFluxParticles(){
+  if(fluxTimer <= 0) return;
+  if(Math.random() > .32) return;
+  const p = new THREE.Mesh(
+    new THREE.SphereGeometry(.04 + Math.random()*.08, 8, 6),
+    new THREE.MeshBasicMaterial({color:0xc7d3c6, transparent:true, opacity:.18})
+  );
+  p.position.set(
+    player.position.x + (Math.random()-.5)*1.5,
+    .55 + Math.random()*1.2,
+    player.position.z + (Math.random()-.5)*1.5
+  );
+  p.userData.life = 90;
+  scene.add(p);
+  particles.push(p);
+}
+
+const particles = [];
+
+function updateParticles(){
+  for(let i=particles.length-1;i>=0;i--){
+    const p = particles[i];
+    p.userData.life--;
+    p.position.y += .006;
+    p.material.opacity *= .985;
+    if(p.userData.life <= 0){
+      scene.remove(p);
+      particles.splice(i,1);
+    }
+  }
 }
 
 function animate(){
   requestAnimationFrame(animate);
   const t = performance.now() * .001;
+  gameTime = t;
 
-  aoiGroup.position.x = 3 + Math.sin(t*.8)*2.4;
-  aoiGroup.rotation.y = Math.sin(t*.8)*.6;
-  copperLight.intensity = 3.3 + Math.sin(t*3)*.45;
+  // AOI patrol
+  aoiGroup.position.x = 4 + Math.sin(t*.7)*3.1;
+  aoiGroup.position.z = -4.2 + Math.cos(t*.45)*1.0;
+  aoiGroup.rotation.y = Math.sin(t*.8)*.65;
+  scanCone.material.opacity = fluxTimer > 0 ? .035 : .12;
 
-  // Always rotate fallback/model subtly in menu so user sees 3D is alive.
+  copperLight.intensity = 6.6 + Math.sin(t*3)*.6;
+  reworkLight.intensity = 2.8 + Math.sin(t*5)*.5;
+
   if(!started){
-    player.rotation.y += 0.004;
+    player.rotation.y += 0.006;
+    camera.position.lerp(new THREE.Vector3(0,3.0,6.6),0.04);
+    camera.lookAt(0,1.5,0);
   }
 
   if(started){
@@ -358,37 +859,75 @@ function animate(){
     if(keys.KeyA||keys.ArrowLeft) move.x -= 1;
     if(keys.KeyD||keys.ArrowRight) move.x += 1;
 
-    if(move.lengthSq()>0){
-      move.normalize();
-      const fast = (keys.ShiftLeft||keys.ShiftRight) && signal > 2;
-      const speed = fast ? .105 : .055;
-      if(fast) signal = Math.max(0, signal - .22);
-      player.position.add(move.multiplyScalar(speed));
-      const targetRot = Math.atan2(move.x, move.z);
-      player.rotation.y = THREE.MathUtils.lerp(player.rotation.y, targetRot, .16);
-    }else{
-      signal = Math.min(100, signal + .04);
+    let currentSpeed = .072;
+    if((keys.ShiftLeft||keys.ShiftRight) && signal > 2 && dashCooldown <= 0){
+      currentSpeed = .145;
+      signal = Math.max(0, signal - .16);
     }
 
-    player.position.x = THREE.MathUtils.clamp(player.position.x,-9,9);
-    player.position.z = THREE.MathUtils.clamp(player.position.z,-9,9);
+    if(move.lengthSq()>0){
+      move.normalize();
+      const nx = player.position.x + move.x * currentSpeed;
+      const nz = player.position.z + move.z * currentSpeed;
 
+      if(!collisionCheck(nx, player.position.z)) player.position.x = nx;
+      if(!collisionCheck(player.position.x, nz)) player.position.z = nz;
+
+      const targetRot = Math.atan2(move.x, move.z);
+      player.rotation.y = THREE.MathUtils.lerp(player.rotation.y, targetRot, .18);
+    }else{
+      signal = Math.min(100, signal + .035);
+    }
+
+    // Jump / gravity
+    if(keys.Space) jump();
+    velY -= .0062;
+    player.position.y += velY;
+    if(player.position.y <= 0){
+      player.position.y = 0;
+      velY = 0;
+      grounded = true;
+      coyote = 8;
+    }else{
+      grounded = false;
+      coyote = Math.max(0, coyote - 1);
+    }
+
+    // Clamp world
+    player.position.x = THREE.MathUtils.clamp(player.position.x,-12,12);
+    player.position.z = THREE.MathUtils.clamp(player.position.z,-12,12);
+
+    // Detection
     const dx = player.position.x - aoiGroup.position.x;
     const dz = player.position.z - aoiGroup.position.z;
     const d = Math.sqrt(dx*dx + dz*dz);
+    const detectionFactor = hiddenMode ? .45 : 1;
 
-    if(d < 4.5 && fluxTimer <= 0){
-      risk = Math.min(100, risk + .35);
-      if(risk > 80) integrity = Math.max(0, integrity - .08);
+    if(d < 5.0 && fluxTimer <= 0){
+      risk = Math.min(100, risk + .42 * detectionFactor);
+      if(risk > 78) integrity = Math.max(0, integrity - .08);
     }else{
-      risk = Math.max(0, risk - .18);
+      risk = Math.max(0, risk - .22);
     }
-    if(fluxTimer > 0) fluxTimer--;
 
-    const desired = new THREE.Vector3(player.position.x+5.4, 4.7, player.position.z+6.0);
-    camera.position.lerp(desired, .045);
-    camera.lookAt(player.position.x, 1.0, player.position.z);
-    player.position.y = Math.sin(t*3.2)*.018;
+    if(fluxTimer > 0) fluxTimer--;
+    flux = Math.min(100, flux + .025);
+    if(dashCooldown > 0) dashCooldown--;
+
+    spawnFluxParticles();
+    updateParticles();
+
+    // Zelda / Conker style follow camera
+    const desired = new THREE.Vector3(player.position.x, player.position.y + 3.15, player.position.z + 6.35);
+    camera.position.lerp(desired, .085);
+    camera.lookAt(player.position.x, player.position.y + 1.58, player.position.z);
+
+    debugBox.innerHTML =
+      'player: ' + player.position.x.toFixed(2) + ', ' + player.position.y.toFixed(2) + ', ' + player.position.z.toFixed(2) + '<br>' +
+      'risk: ' + risk.toFixed(1) + ' fluxTimer: ' + fluxTimer + '<br>' +
+      'glb: ' + (playerReady ? 'loaded' : 'fallback/loading');
+  }else{
+    updateParticles();
   }
 
   hud();
