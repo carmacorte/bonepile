@@ -83,72 +83,6 @@
   body.touch-active #touch-controls { display:block; }
   body.touch-active .controls-hint { display:none; }
   @media (max-width: 960px) { #game-container { border:none; box-shadow:none; } }
-
-/* ================= BONEPILE v1.3 SAFE POLISH PATCH ================= */
-#game-container {
-  filter: brightness(1.16) contrast(1.08) saturate(1.08);
-}
-
-.crt::before {
-  opacity: .55;
-}
-
-.crt::after {
-  background:
-    radial-gradient(circle at 50% 45%, transparent 52%, rgba(0,0,0,0.42) 100%),
-    radial-gradient(circle at 50% 50%, rgba(255,107,53,0.035), transparent 45%);
-}
-
-.title-big {
-  text-shadow:
-    0 0 28px rgba(255,255,255,0.16),
-    0 4px 0 #1a1a1a,
-    0 0 80px rgba(255,107,53,0.10);
-}
-
-.menu-btn {
-  background: rgba(8,8,12,0.55);
-  box-shadow: 0 0 18px rgba(255,107,53,0.18), inset 0 0 16px rgba(255,107,53,0.04);
-}
-
-.stat-box, .hud-right, .log {
-  backdrop-filter: blur(2px);
-}
-
-.touch-btn {
-  backdrop-filter: blur(2px);
-}
-
-body.touch-active .log {
-  max-width: 440px;
-}
-
-@media (max-width: 960px) {
-  #game-container {
-    filter: brightness(1.22) contrast(1.1) saturate(1.12);
-  }
-
-  .touch-dpad {
-    width: 60px;
-    height: 60px;
-    font-size: 20px;
-  }
-
-  .touch-action {
-    width: 72px;
-    height: 58px;
-  }
-
-  .touch-action-lg {
-    width: 82px;
-    height: 62px;
-  }
-
-  #btn-dash { right:18px; bottom:calc(18px + env(safe-area-inset-bottom)); }
-  #btn-flux { right:112px; bottom:calc(24px + env(safe-area-inset-bottom)); }
-  #btn-interact { right:18px; bottom:calc(94px + env(safe-area-inset-bottom)); }
-}
-
 </style>
 </head>
 <body>
@@ -189,7 +123,7 @@ body.touch-active .log {
       <div class="quote">"No necesitamos ser perfectos. Solo necesitamos seguir funcionando."<br>— R3-W0RK</div>
       <button class="menu-btn" id="btn-start">INICIAR SECUENCIA</button>
       <button class="menu-btn" id="btn-help">MANUAL TÉCNICO</button>
-      <div style="margin-top:16px; font-size:10px; color:#3a5a3a;">v1.3 ISO POLISH // UNREGISTERED NODE 7B-IC34</div>
+      <div style="margin-top:16px; font-size:10px; color:#3a5a3a;">v1.2 // UNREGISTERED NODE 7B-IC34</div>
     </div>
     <div id="help-screen" class="hidden">
       <div style="font-size:24px; color:#ff6b35; margin-bottom:18px; letter-spacing:4px;">MANUAL TÉCNICO</div>
@@ -277,7 +211,7 @@ let currentZone = 0;
 const zoneNames = ['MRB VAULT','SMT CORRIDOR','BONEPILE STATION'];
 
 const player = {
-  x:100,y:300,r:18, speed:2.45, dashSpeed:5.35,
+  x:100,y:300,r:14, speed:2.2, dashSpeed:4.8,
   integrity:100, maxIntegrity:100, signal:100, maxSignal:100, risk:0,
   fluxVials:1, avlSkins:0, scrap:0,
   hidden:false, cloaked:false, cloakTimer:0,
@@ -298,38 +232,94 @@ function dist(a,b) { return Math.hypot(a.x-b.x, a.y-b.y); }
 
 /* ================= PROCEDURAL BACKGROUND ================= */
 function drawPCBBackground() {
-  rect(0,0,W,H,'#08080c');
-  ctx.strokeStyle='rgba(20,50,30,0.25)'; ctx.lineWidth=1;
-  for (let x=0;x<W;x+=60) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke(); }
-  for (let y=0;y<H;y+=60) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); }
-  ctx.fillStyle='rgba(10,15,10,0.6)';
-  for (let i=0;i<40;i++) {
-    const vx=((i*137)%W), vy=((i*89)%H);
-    ctx.beginPath(); ctx.arc(vx,vy,3,0,Math.PI*2); ctx.fill();
-    ctx.strokeStyle='rgba(40,70,40,0.3)'; ctx.lineWidth=1;
-    ctx.beginPath(); ctx.arc(vx,vy,5,0,Math.PI*2); ctx.stroke();
+  // Base cálido-oscuro estilo Zelda industrial
+  rect(0,0,W,H,'#0a0a0e');
+
+  // Patrón de grid sutil con tinte cobre
+  ctx.strokeStyle='rgba(60,45,30,0.15)'; ctx.lineWidth=1;
+  for (let x=0;x<W;x+=80) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke(); }
+  for (let y=0;y<H;y+=80) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); }
+
+  // Grid fino adicional para textura PCB
+  ctx.strokeStyle='rgba(40,60,40,0.08)'; ctx.lineWidth=0.5;
+  for (let x=0;x<W;x+=20) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke(); }
+  for (let y=0;y<H;y+=20) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); }
+
+  // Vías (pads) distribuidos con patrón semi-regular
+  ctx.fillStyle='rgba(25,35,25,0.5)';
+  for (let i=0;i<60;i++) {
+    const vx=((i*137+53)%W), vy=((i*89+17)%H);
+    ctx.beginPath(); ctx.arc(vx,vy,2.5,0,Math.PI*2); ctx.fill();
+    ctx.strokeStyle='rgba(50,70,50,0.2)'; ctx.lineWidth=0.8;
+    ctx.beginPath(); ctx.arc(vx,vy,4,0,Math.PI*2); ctx.stroke();
   }
-  ctx.strokeStyle='rgba(26,60,43,0.4)'; ctx.lineWidth=4;
-  for (let i=0;i<8;i++) { const y=80+i*70; ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); }
-  for (let i=0;i<300;i++) { ctx.fillStyle=`rgba(255,255,255,${Math.random()*0.03})`; ctx.fillRect(Math.random()*W,Math.random()*H,1,1); }
+
+  // Trazas gruesas principales (autopistas de cobre)
+  ctx.strokeStyle='rgba(100,65,35,0.12)'; ctx.lineWidth=6;
+  for (let i=0;i<6;i++) { 
+    const y=60+i*100; 
+    ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); 
+    ctx.stroke();
+    // Brillo metálico en el centro
+    ctx.strokeStyle='rgba(180,115,51,0.06)'; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); 
+    ctx.stroke();
+    ctx.strokeStyle='rgba(100,65,35,0.12)'; ctx.lineWidth=6;
+  }
+
+  // Trazas verticales
+  ctx.strokeStyle='rgba(80,55,30,0.10)'; ctx.lineWidth=5;
+  for (let i=0;i<4;i++) { 
+    const x=200+i*200; 
+    ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); 
+    ctx.stroke(); 
+  }
+
+  // Partículas de polvo de soldadura flotando (estática)
+  for (let i=0;i<400;i++) { 
+    const alpha = Math.random()*0.04;
+    const size = Math.random() < 0.9 ? 1 : 2;
+    ctx.fillStyle=`rgba(200,180,140,${alpha})`; 
+    ctx.fillRect(Math.random()*W,Math.random()*H,size,size); 
+  }
+
+  // Zonas de luz tenue (focos de fábrica)
+  for (let i=0;i<3;i++) {
+    const lx = 150 + i*320;
+    const ly = 100 + (i%2)*400;
+    const lightGrad = ctx.createRadialGradient(lx,ly,10,lx,ly,180);
+    lightGrad.addColorStop(0,'rgba(255,220,150,0.03)');
+    lightGrad.addColorStop(0.5,'rgba(255,200,120,0.01)');
+    lightGrad.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle=lightGrad; ctx.fillRect(lx-180,ly-180,360,360);
+  }
 }
 
 /* ================= ISO DRAWING HELPERS ================= */
-function drawShadow(x,y,w,h,blur=8,alpha=0.5,offX=4,offY=6) {
+function drawShadow(x,y,w,h,blur=10,alpha=0.55,offX=5,offY=7) {
   ctx.save();
+  // Sombra difusa
+  ctx.shadowColor='rgba(0,0,0,'+alpha*0.6+')'; ctx.shadowBlur=blur+4;
+  ctx.shadowOffsetX=offX+2; ctx.shadowOffsetY=offY+3;
+  ctx.fillStyle='rgba(0,0,0,0.01)'; ctx.fillRect(x,y,w,h);
+  // Sombra principal
   ctx.shadowColor='rgba(0,0,0,'+alpha+')'; ctx.shadowBlur=blur;
   ctx.shadowOffsetX=offX; ctx.shadowOffsetY=offY;
   ctx.fillStyle='rgba(0,0,0,0.01)'; ctx.fillRect(x,y,w,h);
   ctx.restore();
 }
-function drawIsoShadow(x,y,w,h) {
-  // Isometric shadow: ellipse skewed 30deg
+function drawIsoShadow(x,y,w,h,intensity=0.45) {
+  // Isometric shadow: ellipse skewed 30deg con profundidad
   ctx.save();
   ctx.translate(x,y);
   ctx.scale(1,0.5);
   ctx.rotate(Math.PI/6);
-  ctx.fillStyle='rgba(0,0,0,0.45)';
-  ctx.beginPath(); ctx.ellipse(4,8,w*0.6,h*0.4,0,0,Math.PI*2); ctx.fill();
+  // Sombra difusa exterior
+  ctx.fillStyle=`rgba(0,0,0,${intensity*0.6})`;
+  ctx.beginPath(); ctx.ellipse(6,12,w*0.7,h*0.5,0,0,Math.PI*2); ctx.fill();
+  // Sombra densa interior
+  ctx.fillStyle=`rgba(0,0,0,${intensity})`;
+  ctx.beginPath(); ctx.ellipse(4,8,w*0.55,h*0.35,0,0,Math.PI*2); ctx.fill();
   ctx.restore();
 }
 
@@ -503,7 +493,18 @@ function update() {
     }
   }
   for (let i=particles.length-1;i>=0;i--) { let p=particles[i]; p.x+=p.vx; p.y+=p.vy; p.life--; if (p.life<=0) particles.splice(i,1); }
-  if (frame%8===0) particles.push({x:Math.random()*W,y:Math.random()*H,vx:(Math.random()-0.5)*0.2,vy:-0.2-Math.random()*0.3,life:120,maxLife:120,r:1,color:'rgba(100,120,100,0.2)',type:'dust'});
+  if (frame%8===0) {
+    // Polvo ambiental
+    particles.push({x:Math.random()*W,y:Math.random()*H,vx:(Math.random()-0.5)*0.2,vy:-0.2-Math.random()*0.3,life:120,maxLife:120,r:1,color:'rgba(140,130,110,0.25)',type:'dust'});
+    // Chispas de soldadura flotantes (raras)
+    if (Math.random()<0.15) particles.push({x:Math.random()*W,y:Math.random()*H,vx:(Math.random()-0.5)*0.5,vy:-0.5-Math.random()*0.5,life:80,maxLife:80,r:1.5+Math.random(),color:'rgba(255,150,50,0.4)',type:'spark'});
+    // Humo de estaciones de rework cercanas
+    for (let s of stations) {
+      if (!s.used && Math.random()<0.08) {
+        particles.push({x:s.x+s.w/2+(Math.random()-0.5)*30,y:s.y+s.h/2,vx:(Math.random()-0.5)*0.3,vy:-0.4-Math.random()*0.4,life:100+Math.random()*60,maxLife:160,r:4+Math.random()*6,color:'rgba(180,200,180,0.08)',type:'smoke'});
+      }
+    }
+  }
   document.getElementById('barIntegrity').style.width=(player.integrity/player.maxIntegrity*100)+'%';
   document.getElementById('barSignal').style.width=(player.signal/player.maxSignal*100)+'%';
   document.getElementById('barRisk').style.width=player.risk+'%';
@@ -524,7 +525,7 @@ function drawR3Work(x,y,phase,dir,cloaked,hidden) {
   const moving = Math.hypot(dir.x,dir.y) > 0.1;
 
   // Legs: 8 legs, 4 per side, offset by phase
-  const legLen1 = 13, legLen2 = 13;
+  const legLen1 = 10, legLen2 = 10;
   for (let side = -1; side <= 1; side += 2) {
     for (let i = 0; i < 4; i++) {
       const legPhase = phase + i * 0.8 + (side===1?Math.PI:0);
@@ -572,7 +573,7 @@ function drawR3Work(x,y,phase,dir,cloaked,hidden) {
   ctx.stroke();
 
   // SOIC-16 Body (isometric diamond-ish)
-  const bw=25, bh=31; // body width/height
+  const bw=18, bh=22; // body width/height
   // Top face (lighter)
   const topGrad = ctx.createLinearGradient(x-bw,y-bh*0.6,x+bw,y-bh*0.3);
   topGrad.addColorStop(0,'#4a4a4a'); topGrad.addColorStop(0.5,'#3a3a3a'); topGrad.addColorStop(1,'#2a2a2a');
@@ -622,24 +623,38 @@ function drawR3Work(x,y,phase,dir,cloaked,hidden) {
   ctx.translate(x, y-2);
   ctx.rotate(-0.3);
   ctx.fillStyle='rgba(200,200,200,0.25)';
-  ctx.font='bold 9px Share Tech Mono';
-  ctx.fillText('R3-WORK', -20, 0);
+  ctx.font='bold 7px Share Tech Mono';
+  ctx.fillText('R3-WORK', -14, 0);
   ctx.fillStyle='rgba(200,200,200,0.1)';
-  ctx.fillText('SOIC-16', -15, 10);
+  ctx.fillText('SOIC-16', -10, 8);
   ctx.restore();
 
   // Triangle NC mark
   ctx.fillStyle='rgba(255,100,100,0.3)';
   ctx.beginPath(); ctx.moveTo(x-8,y-4); ctx.lineTo(x-4,y-4); ctx.lineTo(x-6,y-1); ctx.closePath(); ctx.fill();
 
-  // Status LED (shoulder)
+  // Status LED (shoulder) - más brillante, con halo
   const ledColor = player.integrity>50?'#00ff41':'#ff6b35';
-  ctx.shadowColor=ledColor; ctx.shadowBlur=12;
+  const ledPulse = Math.sin(frame*0.15)*0.3+0.7;
+  // Halo exterior
+  ctx.shadowColor=ledColor; ctx.shadowBlur=20*ledPulse;
+  ctx.fillStyle=`rgba(${player.integrity>50?'0,255,65':'255,107,53'},0.15)`;
+  ctx.beginPath(); ctx.arc(x-6,y-10,8,0,Math.PI*2); ctx.fill();
+  // Halo medio
+  ctx.shadowBlur=12;
   ctx.fillStyle=ledColor;
-  ctx.beginPath(); ctx.arc(x-9,y-15,3.4,0,Math.PI*2); ctx.fill();
-  ctx.fillStyle='rgba(255,255,255,0.6)';
-  ctx.beginPath(); ctx.arc(x-10,y-16,1.2,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(x-6,y-10,3,0,Math.PI*2); ctx.fill();
+  // Brillo central
+  ctx.fillStyle='rgba(255,255,255,0.8)';
+  ctx.beginPath(); ctx.arc(x-6.8,y-10.8,1.2,0,Math.PI*2); ctx.fill();
   ctx.shadowBlur=0;
+
+  // Luz ambiental que emana del personaje (linterna orgánica)
+  const playerLight = ctx.createRadialGradient(x,y,20,x,y,90);
+  playerLight.addColorStop(0,'rgba(255,220,180,0.04)');
+  playerLight.addColorStop(0.5,'rgba(255,200,150,0.02)');
+  playerLight.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.fillStyle=playerLight; ctx.fillRect(x-90,y-90,180,180);
 
   // Soldering tool (appears when near station or moving)
   const nearStation = stations.some(s=>!s.used&&Math.abs(player.x-(s.x+s.w/2))<70&&Math.abs(player.y-(s.y+s.h/2))<70);
@@ -706,15 +721,29 @@ function drawAOIDrone(e) {
   const lensY = y + Math.sin(e.angle)*10;
   ctx.fillStyle='#111';
   ctx.beginPath(); ctx.arc(lensX,lensY,5,0,Math.PI*2); ctx.fill();
-  // Lens glow
+  // Lens glow con intensidad variable
   const lensPulse = Math.sin(frame*0.1)*0.3+0.7;
-  const lensColor = alert>50?`rgba(255,50,50,${lensPulse})`:`rgba(255,0,0,${lensPulse})`;
-  ctx.shadowColor='#ff0033'; ctx.shadowBlur=alert>50?18:10;
-  ctx.fillStyle=lensColor;
-  ctx.beginPath(); ctx.arc(lensX,lensY,3.5,0,Math.PI*2); ctx.fill();
+  const lensAlpha = alert>50 ? 0.9 : 0.6;
+  // Halo de lente
+  ctx.shadowColor=alert>50?'#ff3333':'#ff0033'; 
+  ctx.shadowBlur=alert>50?28:16;
+  ctx.fillStyle=`rgba(255,${alert>50?'50':'30'},30,${lensPulse*0.3})`;
+  ctx.beginPath(); ctx.arc(lensX,lensY,10,0,Math.PI*2); ctx.fill();
+  // Núcleo
+  ctx.shadowBlur=alert>50?18:10;
+  ctx.fillStyle=`rgba(255,${alert>50?'60':'20'},20,${lensAlpha})`;
+  ctx.beginPath(); ctx.arc(lensX,lensY,4,0,Math.PI*2); ctx.fill();
   ctx.fillStyle='#fff';
-  ctx.beginPath(); ctx.arc(lensX,lensY,1.5,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(lensX,lensY,1.8,0,Math.PI*2); ctx.fill();
   ctx.shadowBlur=0;
+
+  // Luz que proyecta el drone en el suelo (subtle)
+  if (alert > 30) {
+    const droneGround = ctx.createRadialGradient(x,y,5,x,y,40);
+    droneGround.addColorStop(0,'rgba(255,0,51,0.06)');
+    droneGround.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle=droneGround; ctx.fillRect(x-40,y-40,80,80);
+  }
 
   // Thrusters / stabilizers (sides)
   const thrusterColor = alert>50?'#ff3333':'#444';
@@ -741,136 +770,212 @@ function draw() {
 
   drawPCBBackground();
 
-  // Traces
+  // Traces - cobre con brillo metálico y reflejo
   for (let t of traces) {
-    ctx.shadowColor='#b87333'; ctx.shadowBlur=15;
-    ctx.fillStyle='rgba(184,115,51,0.15)';
-    ctx.fillRect(t.x-2,t.y-2,t.w+4,t.h+4);
-    ctx.shadowBlur=8;
-    const grad=ctx.createLinearGradient(t.x,t.y,t.x+t.w,t.y+t.h);
-    grad.addColorStop(0,'#8b5a2b'); grad.addColorStop(0.5,'#b87333'); grad.addColorStop(1,'#8b5a2b');
-    ctx.fillStyle=grad; ctx.fillRect(t.x,t.y,t.w,t.h);
-    ctx.fillStyle='rgba(255,200,150,0.3)'; ctx.fillRect(t.x,t.y+1,t.w,2);
+    // Glow exterior difuso
+    ctx.shadowColor='#b87333'; ctx.shadowBlur=20;
+    ctx.fillStyle='rgba(184,115,51,0.12)';
+    ctx.fillRect(t.x-3,t.y-3,t.w+6,t.h+6);
+    ctx.shadowBlur=12;
+    ctx.fillStyle='rgba(184,115,51,0.2)';
+    ctx.fillRect(t.x-1,t.y-1,t.w+2,t.h+2);
     ctx.shadowBlur=0;
+    // Cuerpo principal con gradiente metálico
+    const grad=ctx.createLinearGradient(t.x,t.y,t.x+t.w,t.y+t.h);
+    grad.addColorStop(0,'#7a4a25'); grad.addColorStop(0.3,'#b87333'); grad.addColorStop(0.7,'#c88343'); grad.addColorStop(1,'#7a4a25');
+    ctx.fillStyle=grad; ctx.fillRect(t.x,t.y,t.w,t.h);
+    // Reflejo superior (brillo metálico)
+    ctx.fillStyle='rgba(255,220,180,0.35)'; ctx.fillRect(t.x,t.y,t.w,1.5);
+    // Reflejo inferior (sutil)
+    ctx.fillStyle='rgba(100,60,30,0.3)'; ctx.fillRect(t.x,t.y+t.h-1,t.w,1);
+    // Bordes oscuros para definición
+    ctx.strokeStyle='rgba(60,35,15,0.4)'; ctx.lineWidth=0.5;
+    ctx.strokeRect(t.x,t.y,t.w,t.h);
   }
 
   // Walls
   for (let w of walls) {
     if (w.type==='scrap') {
-      drawShadow(w.x+4,w.y+6,w.w,w.h,12,0.6);
+      drawShadow(w.x+4,w.y+6,w.w,w.h,14,0.65);
       const grad=ctx.createLinearGradient(w.x,w.y,w.x,w.y+w.h);
-      grad.addColorStop(0,'#1a1a1a'); grad.addColorStop(1,'#0f0f0f');
+      grad.addColorStop(0,'#1e1e1e'); grad.addColorStop(0.5,'#141414'); grad.addColorStop(1,'#0c0c0c');
       ctx.fillStyle=grad; ctx.fillRect(w.x,w.y,w.w,w.h);
+      // Borde iluminado superior
+      ctx.fillStyle='rgba(255,255,255,0.04)'; ctx.fillRect(w.x,w.y,w.w,1);
       ctx.fillStyle='#252525';
       for (let i=0;i<5;i++) {
         const sx=w.x+8+(i*14)%w.w, sy=w.y+8+Math.floor(i*14/w.w)*12;
-        drawShadow(sx+2,sy+3,10,8,4,0.4);
+        drawShadow(sx+2,sy+3,10,8,5,0.45);
         ctx.fillStyle='#2a2a2a'; ctx.fillRect(sx,sy,10,8);
         ctx.fillStyle='#333'; ctx.fillRect(sx+1,sy+1,8,6);
         ctx.fillStyle='#b87333'; ctx.fillRect(sx-1,sy+2,2,1); ctx.fillRect(sx+9,sy+2,2,1);
+        // Pin shine
+        ctx.fillStyle='rgba(255,200,150,0.3)'; ctx.fillRect(sx-1,sy+2,1,0.5); ctx.fillRect(sx+9,sy+2,1,0.5);
       }
-      ctx.strokeStyle='rgba(60,50,40,0.4)'; ctx.lineWidth=1; ctx.strokeRect(w.x,w.y,w.w,w.h);
+      ctx.strokeStyle='rgba(70,55,40,0.35)'; ctx.lineWidth=1; ctx.strokeRect(w.x,w.y,w.w,w.h);
     } else if (w.type==='machine') {
-      drawShadow(w.x+3,w.y+5,w.w,w.h,10,0.5);
+      drawShadow(w.x+3,w.y+5,w.w,w.h,12,0.55);
       const grad=ctx.createLinearGradient(w.x,w.y,w.x,w.y+w.h);
-      grad.addColorStop(0,'#222'); grad.addColorStop(0.5,'#1a1a1a'); grad.addColorStop(1,'#151515');
+      grad.addColorStop(0,'#252525'); grad.addColorStop(0.5,'#1a1a1a'); grad.addColorStop(1,'#121212');
       ctx.fillStyle=grad; ctx.fillRect(w.x,w.y,w.w,w.h);
-      ctx.fillStyle='rgba(255,255,255,0.05)'; ctx.fillRect(w.x,w.y,w.w,2);
-      const lightColor=(frame%60<30)?'#00ff41':'#1a5a2a';
-      ctx.shadowColor='#00ff41'; ctx.shadowBlur=8;
+      // Reflejo superior metálico
+      ctx.fillStyle='rgba(255,255,255,0.06)'; ctx.fillRect(w.x,w.y,w.w,2);
+      ctx.fillStyle='rgba(255,255,255,0.02)'; ctx.fillRect(w.x,w.y+2,w.w,1);
+      // LED de máquina con parpadeo
+      const lightPulse = Math.sin(frame*0.08)*0.3+0.7;
+      const lightColor=(frame%60<30)?`rgba(0,255,65,${lightPulse})`:`rgba(26,90,42,${lightPulse})`;
+      ctx.shadowColor='#00ff41'; ctx.shadowBlur=10*lightPulse;
       ctx.fillStyle=lightColor; ctx.fillRect(w.x+10,w.y+6,w.w-20,3);
+      // Reflejo del LED en el suelo debajo
       ctx.shadowBlur=0;
-      ctx.strokeStyle='rgba(60,60,60,0.3)'; ctx.lineWidth=1; ctx.strokeRect(w.x+4,w.y+4,w.w-8,w.h-8);
+      const ledReflect = ctx.createLinearGradient(w.x+10,w.y+w.h,w.x+w.w-10,w.y+w.h+15);
+      ledReflect.addColorStop(0,'rgba(0,255,65,0.04)');
+      ledReflect.addColorStop(1,'rgba(0,0,0,0)');
+      ctx.fillStyle=ledReflect; ctx.fillRect(w.x+10,w.y+w.h,w.w-20,12);
+      ctx.strokeStyle='rgba(70,70,70,0.25)'; ctx.lineWidth=1; ctx.strokeRect(w.x+4,w.y+4,w.w-8,w.h-8);
     } else if (w.type==='bench') {
-      drawShadow(w.x+3,w.y+5,w.w,w.h,8,0.5);
+      drawShadow(w.x+3,w.y+5,w.w,w.h,10,0.55);
       const grad=ctx.createLinearGradient(w.x,w.y,w.x,w.y+w.h);
-      grad.addColorStop(0,'#3a2f26'); grad.addColorStop(1,'#2a1f16');
+      grad.addColorStop(0,'#3e332a'); grad.addColorStop(0.5,'#2e231a'); grad.addColorStop(1,'#221a12');
       ctx.fillStyle=grad; ctx.fillRect(w.x,w.y,w.w,w.h);
+      // Componentes encima
       ctx.fillStyle='#555'; ctx.fillRect(w.x+10,w.y+15,18,4); ctx.fillRect(w.x+35,w.y+25,14,4);
       ctx.fillStyle='#888'; ctx.beginPath(); ctx.arc(w.x+15,w.y+22,3,0,Math.PI*2); ctx.fill(); ctx.beginPath(); ctx.arc(w.x+40,w.y+32,3,0,Math.PI*2); ctx.fill();
-      ctx.shadowColor='#ff6b35'; ctx.shadowBlur=12;
-      ctx.fillStyle='rgba(255,107,53,0.08)'; ctx.fillRect(w.x-4,w.y+w.h,w.w+8,6);
+      // Brillo de soldadura debajo del banco
+      const benchPulse = Math.sin(frame*0.12)*0.3+0.7;
+      ctx.shadowColor='#ff6b35'; ctx.shadowBlur=14*benchPulse;
+      ctx.fillStyle=`rgba(255,107,53,${0.1*benchPulse})`; ctx.fillRect(w.x-4,w.y+w.h,w.w+8,8);
+      ctx.fillStyle=`rgba(255,160,80,${0.06*benchPulse})`; ctx.fillRect(w.x-2,w.y+w.h+2,w.w+4,4);
       ctx.shadowBlur=0;
+      // Borde cálido
+      ctx.strokeStyle='rgba(100,70,50,0.3)'; ctx.lineWidth=1; ctx.strokeRect(w.x,w.y,w.w,w.h);
     } else {
       drawShadow(w.x+2,w.y+4,w.w,w.h,8,0.5);
       ctx.fillStyle='#111'; ctx.fillRect(w.x,w.y,w.w,w.h);
     }
   }
 
-  // Stations
+  // Stations - con iluminación de banco de trabajo
   for (let s of stations) {
-    drawShadow(s.x+3,s.y+5,s.w,s.h,10,0.5);
+    drawShadow(s.x+3,s.y+5,s.w,s.h,10,0.55);
     const grad=ctx.createLinearGradient(s.x,s.y,s.x,s.y+s.h);
     grad.addColorStop(0,'#3a2f26'); grad.addColorStop(1,'#2a1f16');
     ctx.fillStyle=grad; ctx.fillRect(s.x,s.y,s.w,s.h);
     const neonColor=s.used?'#444':'#ff6b35';
-    ctx.shadowColor=neonColor; ctx.shadowBlur=s.used?0:14;
-    ctx.strokeStyle=neonColor; ctx.lineWidth=2; ctx.strokeRect(s.x,s.y,s.w,s.h);
-    ctx.fillStyle=s.used?'#555':'#ff6b35'; ctx.font='bold 10px Share Tech Mono';
+    const stationPulse = s.used ? 0 : Math.sin(frame*0.1)*0.3+0.7;
+    // Glow de neon
+    ctx.shadowColor=neonColor; ctx.shadowBlur=s.used?0:18*stationPulse;
+    ctx.strokeStyle=neonColor; ctx.lineWidth=2.5; ctx.strokeRect(s.x,s.y,s.w,s.h);
+    ctx.fillStyle=s.used?'#555':`rgba(255,107,53,${0.8+stationPulse*0.2})`; ctx.font='bold 10px Share Tech Mono';
     ctx.fillText(s.used?'OFFLINE':'REWORK', s.x+8, s.y+24);
     ctx.shadowBlur=0;
+    // Luz de área del banco
+    if (!s.used) {
+      const benchLight = ctx.createRadialGradient(s.x+s.w/2,s.y+s.h/2,5,s.x+s.w/2,s.y+s.h/2,50);
+      benchLight.addColorStop(0,`rgba(255,140,50,${0.06*stationPulse})`);
+      benchLight.addColorStop(1,'rgba(0,0,0,0)');
+      ctx.fillStyle=benchLight; ctx.fillRect(s.x-25,s.y-25,s.w+50,s.h+50);
+    }
     if (!s.used&&Math.abs(player.x-(s.x+s.w/2))<60&&Math.abs(player.y-(s.y+s.h/2))<60&&frame%10===0) {
       particles.push({x:s.x+s.w/2+(Math.random()-0.5)*20,y:s.y+(Math.random()-0.5)*10,vx:(Math.random()-0.5)*2,vy:-1-Math.random(),life:20,maxLife:20,r:1.5,color:'#ffaa55',type:'spark'});
     }
   }
 
-  // Exits
+  // Exits - luz de santuario estilo Zelda
   for (let ex of exits) {
-    const pulse=Math.sin(frame*0.05)*0.3+0.7;
-    ctx.shadowColor='#00ff41'; ctx.shadowBlur=12*pulse;
-    ctx.fillStyle=`rgba(0,255,65,${0.06*pulse})`; ctx.fillRect(ex.x,ex.y,ex.w,ex.h);
-    ctx.strokeStyle=`rgba(0,255,65,${0.5*pulse})`; ctx.lineWidth=1.5; ctx.strokeRect(ex.x,ex.y,ex.w,ex.h);
-    ctx.fillStyle='#00ff41'; ctx.font='bold 10px Share Tech Mono'; ctx.shadowBlur=0;
+    const pulse=Math.sin(frame*0.06)*0.25+0.75;
+    const breathe=Math.sin(frame*0.03)*0.15+0.85;
+    // Halo exterior
+    ctx.shadowColor='#00ff41'; ctx.shadowBlur=20*pulse;
+    ctx.fillStyle=`rgba(0,255,65,${0.04*pulse})`; 
+    ctx.fillRect(ex.x-4,ex.y-4,ex.w+8,ex.h+8);
+    ctx.shadowBlur=12*pulse;
+    ctx.fillStyle=`rgba(0,255,65,${0.08*pulse})`; ctx.fillRect(ex.x,ex.y,ex.w,ex.h);
+    ctx.strokeStyle=`rgba(0,255,65,${0.6*pulse})`; ctx.lineWidth=2; ctx.strokeRect(ex.x,ex.y,ex.w,ex.h);
+    // Rayos de luz verticales sutil
+    ctx.fillStyle=`rgba(0,255,65,${0.03*breathe})`;
+    ctx.fillRect(ex.x+ex.w*0.2,ex.y-20,ex.w*0.15,ex.h+40);
+    ctx.fillRect(ex.x+ex.w*0.6,ex.y-15,ex.w*0.12,ex.h+30);
+    ctx.shadowBlur=0;
+    ctx.fillStyle='#00ff41'; ctx.font='bold 10px Share Tech Mono';
     ctx.fillText(ex.toZone===-1?'SAFE HARBOR':'EXIT >>', ex.x+4, ex.y+ex.h/2+3);
   }
 
-  // Items
+  // Items - con halo de luz y sombra isométrica
   for (let it of items) {
     if (it.taken) continue;
     const bob=Math.sin(frame*0.08+it.x)*3;
     let c,glowC;
-    if (it.type==='scrap') { c='#c8a050'; glowC='rgba(200,160,80,0.4)'; }
-    if (it.type==='flux') { c='#00ff41'; glowC='rgba(0,255,65,0.4)'; }
-    if (it.type==='jumper') { c='#00a8ff'; glowC='rgba(0,168,255,0.4)'; }
-    if (it.type==='avl') { c='#e0e0e0'; glowC='rgba(224,224,224,0.4)'; }
-    ctx.fillStyle='rgba(0,0,0,0.4)'; ctx.beginPath(); ctx.ellipse(it.x,it.y+8,6,3,0,0,Math.PI*2); ctx.fill();
-    ctx.shadowColor=c; ctx.shadowBlur=15;
+    if (it.type==='scrap') { c='#c8a050'; glowC='rgba(200,160,80,0.5)'; }
+    if (it.type==='flux') { c='#00ff41'; glowC='rgba(0,255,65,0.5)'; }
+    if (it.type==='jumper') { c='#00a8ff'; glowC='rgba(0,168,255,0.5)'; }
+    if (it.type==='avl') { c='#e0e0e0'; glowC='rgba(224,224,224,0.5)'; }
+    // Sombra isométrica
+    ctx.fillStyle='rgba(0,0,0,0.35)'; 
+    ctx.beginPath(); ctx.ellipse(it.x+3,it.y+10+bob*0.3,7,3.5,0,0,Math.PI*2); ctx.fill();
+    // Halo exterior pulsante
+    const itemPulse = Math.sin(frame*0.12+it.x)*0.25+0.75;
+    ctx.shadowColor=c; ctx.shadowBlur=22*itemPulse;
+    ctx.fillStyle=glowC.replace(/[\d.]+\)$/, `${0.15*itemPulse})`);
+    ctx.beginPath(); ctx.arc(it.x,it.y+bob,it.r+5,0,Math.PI*2); ctx.fill();
+    // Cuerpo
+    ctx.shadowBlur=14;
     ctx.fillStyle=c; ctx.beginPath(); ctx.arc(it.x,it.y+bob,it.r,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle='rgba(255,255,255,0.4)'; ctx.beginPath(); ctx.arc(it.x-2,it.y+bob-2,it.r*0.4,0,Math.PI*2); ctx.fill();
+    // Reflejo
+    ctx.fillStyle='rgba(255,255,255,0.5)'; ctx.beginPath(); ctx.arc(it.x-2,it.y+bob-2,it.r*0.35,0,Math.PI*2); ctx.fill();
     ctx.shadowBlur=0;
-    ctx.fillStyle=c; ctx.font='bold 9px Share Tech Mono';
+    // Label con sombra de texto
+    ctx.fillStyle='rgba(0,0,0,0.6)'; ctx.font='bold 9px Share Tech Mono';
     const lbl=it.type==='scrap'?'SCRAP':it.type==='flux'?'FLUX':it.type==='jumper'?'JUMPER':'AVL';
-    ctx.fillText(lbl, it.x-12, it.y+bob-14);
+    ctx.fillText(lbl, it.x-11, it.y+bob-13);
+    ctx.fillStyle=c; ctx.fillText(lbl, it.x-12, it.y+bob-14);
   }
 
   // Enemies
   for (let e of enemies) {
     if (e.type==='drone') drawAOIDrone(e);
     else {
-      // Sentinel (static laser)
+      // Sentinel (static laser) - más peligroso y brillante
       const lx=e.x+Math.cos(e.angle)*e.range;
       const ly=e.y+Math.sin(e.angle)*e.range;
-      ctx.shadowColor='#ff0033'; ctx.shadowBlur=10;
-      ctx.strokeStyle='rgba(255,0,51,0.4)'; ctx.lineWidth=3;
+      const laserPulse = Math.sin(frame*0.2)*0.2+0.8;
+      // Halo del láser
+      ctx.shadowColor='#ff0033'; ctx.shadowBlur=16;
+      ctx.strokeStyle=`rgba(255,0,51,${0.35*laserPulse})`; ctx.lineWidth=5;
       ctx.beginPath(); ctx.moveTo(e.x,e.y); ctx.lineTo(lx,ly); ctx.stroke();
-      ctx.shadowBlur=4; ctx.strokeStyle='rgba(255,80,80,0.6)'; ctx.lineWidth=1.5;
+      ctx.shadowBlur=8;
+      ctx.strokeStyle=`rgba(255,60,60,${0.55*laserPulse})`; ctx.lineWidth=3;
+      ctx.beginPath(); ctx.moveTo(e.x,e.y); ctx.lineTo(lx,ly); ctx.stroke();
+      ctx.shadowBlur=4;
+      ctx.strokeStyle=`rgba(255,150,150,${0.8*laserPulse})`; ctx.lineWidth=1;
       ctx.beginPath(); ctx.moveTo(e.x,e.y); ctx.lineTo(lx,ly); ctx.stroke();
       ctx.shadowBlur=0;
-      ctx.fillStyle='rgba(255,0,51,0.3)'; ctx.beginPath(); ctx.arc(lx,ly,6,0,Math.PI*2); ctx.fill();
+      // Punto final del láser
+      ctx.fillStyle=`rgba(255,0,51,${0.4*laserPulse})`; ctx.beginPath(); ctx.arc(lx,ly,8,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle=`rgba(255,100,100,${0.6*laserPulse})`; ctx.beginPath(); ctx.arc(lx,ly,4,0,Math.PI*2); ctx.fill();
       // Emitter body
-      drawShadow(e.x-4,e.y-4,8,8,6,0.5);
-      ctx.fillStyle='#222'; ctx.beginPath(); ctx.arc(e.x,e.y,5,0,Math.PI*2); ctx.fill();
-      ctx.fillStyle='#ff0033'; ctx.beginPath(); ctx.arc(e.x,e.y,2,0,Math.PI*2); ctx.fill();
+      drawShadow(e.x-4,e.y-4,8,8,8,0.55);
+      ctx.fillStyle='#1a1a1a'; ctx.beginPath(); ctx.arc(e.x,e.y,6,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle='#222'; ctx.beginPath(); ctx.arc(e.x,e.y,4,0,Math.PI*2); ctx.fill();
+      ctx.shadowColor='#ff0033'; ctx.shadowBlur=10;
+      ctx.fillStyle=`rgba(255,0,51,${laserPulse})`; ctx.beginPath(); ctx.arc(e.x,e.y,2.5,0,Math.PI*2); ctx.fill();
+      ctx.shadowBlur=0;
     }
-    // Vision cone
-    const coneAlpha=e.alert>50?0.12:0.06;
+    // Vision cone - más legible pero atmosférico
+    const coneAlpha=e.alert>50?0.10:0.05;
+    const coneColor=e.alert>50?'255,30,30':'255,0,51';
     for (let layer=3;layer>=0;layer--) {
       const range=e.range*(1-layer*0.08);
-      ctx.fillStyle=`rgba(255,0,51,${coneAlpha*(1-layer*0.2)})`;
+      ctx.fillStyle=`rgba(${coneColor},${coneAlpha*(1-layer*0.25)})`;
       ctx.beginPath(); ctx.moveTo(e.x,e.y); ctx.arc(e.x,e.y,range,e.angle-e.fov/2,e.angle+e.fov/2); ctx.closePath(); ctx.fill();
     }
-    ctx.strokeStyle=e.alert>50?'rgba(255,0,51,0.5)':'rgba(255,0,51,0.2)'; ctx.lineWidth=1;
+    // Borde del cono
+    ctx.strokeStyle=e.alert>50?`rgba(255,60,60,0.6)`:`rgba(255,0,51,0.25)`; ctx.lineWidth=1.2;
     ctx.beginPath(); ctx.moveTo(e.x,e.y); ctx.arc(e.x,e.y,e.range,e.angle-e.fov/2,e.angle+e.fov/2); ctx.closePath(); ctx.stroke();
+    // Líneas del borde del cono
+    ctx.strokeStyle=e.alert>50?`rgba(255,60,60,0.3)`:`rgba(255,0,51,0.15)`; ctx.lineWidth=0.8;
+    ctx.beginPath(); ctx.moveTo(e.x,e.y); ctx.lineTo(e.x+Math.cos(e.angle-e.fov/2)*e.range, e.y+Math.sin(e.angle-e.fov/2)*e.range); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(e.x,e.y); ctx.lineTo(e.x+Math.cos(e.angle+e.fov/2)*e.range, e.y+Math.sin(e.angle+e.fov/2)*e.range); ctx.stroke();
   }
 
   // Player — ISO R3-WORK
@@ -894,17 +999,44 @@ function draw() {
   // Texts
   for (let t of texts) { ctx.fillStyle=t.color; ctx.font=t.size+'px Share Tech Mono'; ctx.fillText(t.str, t.x, t.y); }
 
-  // Ambient lighting
-  const lightGrad=ctx.createRadialGradient(player.x,player.y,30,player.x,player.y,250);
-  lightGrad.addColorStop(0,'rgba(255,200,150,0.03)'); lightGrad.addColorStop(1,'rgba(0,0,0,0)');
+  // Ambient lighting mejorada - estilo Zelda con focos y profundidad
+  // Luz del jugador más cálida y amplia
+  const lightGrad=ctx.createRadialGradient(player.x,player.y,25,player.x,player.y,220);
+  lightGrad.addColorStop(0,'rgba(255,230,180,0.06)');
+  lightGrad.addColorStop(0.4,'rgba(255,200,140,0.03)');
+  lightGrad.addColorStop(1,'rgba(0,0,0,0)');
   ctx.fillStyle=lightGrad; ctx.fillRect(0,0,W,H);
+
+  // Vignette sutil para enfocar atención (estilo cinematográfico)
+  const vigGrad = ctx.createRadialGradient(W/2,H/2,180,W/2,H/2,520);
+  vigGrad.addColorStop(0,'rgba(0,0,0,0)');
+  vigGrad.addColorStop(0.7,'rgba(5,5,8,0.15)');
+  vigGrad.addColorStop(1,'rgba(5,5,8,0.45)');
+  ctx.fillStyle=vigGrad; ctx.fillRect(0,0,W,H);
+
+  // Luz de enemigos en alerta más intensa
   for (let e of enemies) {
     if (e.alert>30) {
-      const eGrad=ctx.createRadialGradient(e.x,e.y,10,e.x,e.y,100);
-      eGrad.addColorStop(0,'rgba(255,0,51,0.04)'); eGrad.addColorStop(1,'rgba(0,0,0,0)');
-      ctx.fillStyle=eGrad; ctx.fillRect(e.x-100,e.y-100,200,200);
+      const alertIntensity = e.alert / 100;
+      const eGrad=ctx.createRadialGradient(e.x,e.y,8,e.x,e.y,120);
+      eGrad.addColorStop(0,`rgba(255,30,30,${0.08*alertIntensity})`);
+      eGrad.addColorStop(0.5,`rgba(255,0,51,${0.04*alertIntensity})`);
+      eGrad.addColorStop(1,'rgba(0,0,0,0)');
+      ctx.fillStyle=eGrad; ctx.fillRect(e.x-120,e.y-120,240,240);
     }
   }
+
+  // Brillo en salidas/estaciones activas
+  for (let s of stations) {
+    if (!s.used) {
+      const stationPulse = Math.sin(frame*0.08)*0.2+0.8;
+      const sGrad=ctx.createRadialGradient(s.x+s.w/2,s.y+s.h/2,5,s.x+s.w/2,s.y+s.h/2,60);
+      sGrad.addColorStop(0,`rgba(255,107,53,${0.08*stationPulse})`);
+      sGrad.addColorStop(1,'rgba(0,0,0,0)');
+      ctx.fillStyle=sGrad; ctx.fillRect(s.x-30,s.y-30,s.w+60,s.h+60);
+    }
+  }
+
   ctx.restore();
 }
 
@@ -955,40 +1087,6 @@ function wireBtn(id,fn) {
 wireBtn('btn-start',startGame); wireBtn('btn-help',showHelp); wireBtn('btn-help-back',hideHelp);
 wireBtn('btn-retry',restartGame); wireBtn('btn-menu-death',goMenu);
 wireBtn('btn-retry-win',restartGame); wireBtn('btn-menu-win',goMenu);
-
-
-/* ================= v1.3 TOUCH ACTION FIX ================= */
-function bindActionButton(id, fn) {
-  const el = document.getElementById(id);
-  if (!el) return;
-
-  let lastTap = 0;
-  const run = (e) => {
-    e.preventDefault();
-    const now = Date.now();
-    if (now - lastTap < 220) return;
-    lastTap = now;
-    if (gameState === 'playing') fn();
-  };
-
-  el.addEventListener('touchstart', run, {passive:false});
-  el.addEventListener('click', run);
-}
-
-bindActionButton('btn-flux', useFlux);
-bindActionButton('btn-interact', interact);
-
-/* Bigger feedback for mobile controls */
-['dpad-up','dpad-down','dpad-left','dpad-right','btn-dash','btn-flux','btn-interact'].forEach(id => {
-  const el = document.getElementById(id);
-  if (!el) return;
-  el.addEventListener('touchstart', () => el.style.transform += ' scale(0.96)', {passive:true});
-  el.addEventListener('touchend', () => {
-    if (id === 'dpad-left') el.style.transform = 'translateX(-60px)';
-    else if (id === 'dpad-right') el.style.transform = 'translateX(60px)';
-    else el.style.transform = '';
-  }, {passive:true});
-});
 
 loop();
 </script>
