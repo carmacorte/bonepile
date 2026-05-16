@@ -1,555 +1,407 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="BONEPILE - Industrial Sci-Fi Stealth Game. Play as R3-WORK, a reworked SOIC-16 chip, and survive in a PCB megastructure controlled by the IPC Authority.">
-    <meta name="theme-color" content="#000000">
-    <title>BONEPILE - R3-W0RK Protocol</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no" />
+<title>BONEPILE — R3-W0RK 3D</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
 
-        html, body {
-            width: 100%;
-            height: 100%;
-            background: #000;
-            color: #0f0;
-            font-family: 'OCR A', 'Courier New', monospace;
-            overflow: hidden;
-        }
-
-        #gameContainer {
-            width: 100%;
-            height: 100%;
-            position: relative;
-            display: flex;
-            flex-direction: column;
-            background: linear-gradient(135deg, #000 0%, #0a0a0a 100%);
-            border: 2px solid #0f0;
-        }
-
-        #canvas3d {
-            flex: 1;
-            display: block;
-            background: #000;
-        }
-
-        #hud {
-            background: rgba(0, 0, 0, 0.95);
-            border-top: 2px solid #0f0;
-            padding: 12px 20px;
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-            gap: 15px;
-            font-size: 10px;
-        }
-
-        .stat {
-            display: flex;
-            flex-direction: column;
-            gap: 3px;
-        }
-
-        .stat-label {
-            color: #0a0;
-            text-transform: uppercase;
-            font-size: 8px;
-            letter-spacing: 1.5px;
-        }
-
-        .stat-bar {
-            width: 100%;
-            height: 5px;
-            background: #1a1a1a;
-            border: 1px solid #0f0;
-            overflow: hidden;
-        }
-
-        .stat-fill {
-            height: 100%;
-            transition: width 0.2s ease;
-            box-shadow: 0 0 4px currentColor;
-        }
-
-        .stat-value {
-            color: #0f0;
-            font-size: 8px;
-        }
-
-        #info {
-            background: rgba(0, 0, 0, 0.8);
-            border-top: 1px solid #0a0;
-            padding: 6px 20px;
-            font-size: 9px;
-            color: #0a0;
-            text-align: center;
-            letter-spacing: 1px;
-        }
-
-        #debug {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            background: rgba(0, 0, 0, 0.85);
-            border: 1px solid #0f0;
-            padding: 8px 12px;
-            font-size: 8px;
-            z-index: 5;
-            color: #0f0;
-            line-height: 1.5;
-            max-width: 200px;
-        }
-
-        .scanline {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: calc(100% - 100px);
-            background: repeating-linear-gradient(
-                0deg,
-                rgba(0, 255, 0, 0.01),
-                rgba(0, 255, 0, 0.01) 1px,
-                transparent 1px,
-                transparent 2px
-            );
-            pointer-events: none;
-            z-index: 4;
-        }
-
-        #loading {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(0, 0, 0, 0.95);
-            border: 2px solid #0f0;
-            padding: 30px 50px;
-            text-align: center;
-            z-index: 20;
-            font-size: 14px;
-            color: #0f0;
-            line-height: 1.8;
-        }
-
-        #loading.hidden {
-            display: none;
-        }
-
-        .loading-bar {
-            width: 200px;
-            height: 4px;
-            background: #1a1a1a;
-            border: 1px solid #0f0;
-            margin-top: 15px;
-            overflow: hidden;
-        }
-
-        .loading-bar-fill {
-            height: 100%;
-            background: #0f0;
-            width: 0%;
-            box-shadow: 0 0 8px #0f0;
-            animation: pulse 0.8s ease-in-out infinite;
-        }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.7; }
-        }
-
-        @media (max-width: 768px) {
-            #hud {
-                grid-template-columns: repeat(3, 1fr);
-                font-size: 9px;
-            }
-
-            #debug {
-                font-size: 7px;
-                padding: 6px 10px;
-            }
-
-            #info {
-                font-size: 8px;
-                padding: 4px 15px;
-            }
-        }
-    </style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:100%;height:100%;overflow:hidden;background:#030504;color:#c8c8c8;font-family:'Share Tech Mono',monospace;touch-action:none}
+#game{position:fixed;inset:0;background:#020303}
+#hud{position:fixed;inset:0;pointer-events:none;z-index:10}
+.top-hud{position:absolute;top:18px;left:18px;display:flex;gap:12px}
+.stat{width:150px;background:rgba(5,8,8,.78);border:1px solid rgba(90,138,106,.75);padding:10px 12px;box-shadow:0 0 18px rgba(26,60,43,.25)}
+.stat-label{color:#7fb18d;font-size:12px;letter-spacing:3px;margin-bottom:8px}
+.bar{height:8px;background:#151817;overflow:hidden}.fill{height:100%;transition:width .2s}
+#integrityFill{width:100%;background:#ff6b35}#signalFill{width:100%;background:#00a8ff}#riskFill{width:0%;background:#ff0033}
+.title{position:absolute;top:18px;right:22px;text-align:right;color:#b87333;letter-spacing:3px;font-size:16px;text-shadow:0 0 8px rgba(184,115,51,.5)}
+.subtitle{color:#5a8a6a;font-size:11px;margin-top:4px;letter-spacing:1px}
+.log{position:absolute;left:18px;bottom:22px;width:min(620px,calc(100vw - 36px));min-height:52px;padding:12px 16px;background:rgba(5,8,8,.82);border-left:3px solid #ff6b35;color:#b8b8b8;font-size:14px;line-height:1.5}
+#menu{position:fixed;inset:0;z-index:20;display:flex;flex-direction:column;justify-content:center;align-items:center;background:rgba(2,3,3,.84);text-align:center}
+.main-title{font-size:70px;letter-spacing:12px;color:#cfcfcf;text-shadow:0 0 18px rgba(255,255,255,.16),0 8px 0 #191919}
+.main-sub{margin-top:18px;padding-bottom:12px;border-bottom:1px solid #2a4a3a;color:#7fb18d;letter-spacing:6px;font-size:15px}
+.quote{margin:35px 0;max-width:620px;color:#8a8a8a;font-style:italic;line-height:1.6}
+button{font-family:'Share Tech Mono',monospace;background:rgba(5,8,8,.6);color:#ff6b35;border:1px solid #ff6b35;padding:14px 36px;letter-spacing:4px;font-size:15px;cursor:pointer}
+button:active{background:rgba(255,107,53,.18)}
+#touch{display:none;position:fixed;inset:0;z-index:15;pointer-events:none}
+#touch.visible{display:block}
+.dpad{position:absolute;left:28px;bottom:28px;width:162px;height:162px;pointer-events:auto}
+.touch-btn{position:absolute;width:58px;height:58px;display:flex;justify-content:center;align-items:center;border:1px solid rgba(255,107,53,.75);color:#ff6b35;background:rgba(6,8,8,.66);font-size:22px;user-select:none;-webkit-user-select:none}
+#up{left:52px;top:0}#left{left:0;top:52px}#right{left:104px;top:52px}#down{left:52px;top:104px}
+.actions{position:absolute;right:28px;bottom:34px;width:270px;height:150px;pointer-events:auto}
+.action{position:absolute;width:92px;height:60px;border-radius:14px;border:1px solid rgba(90,138,106,.85);color:#7fb18d;background:rgba(6,8,8,.66);display:flex;justify-content:center;align-items:center;letter-spacing:3px;font-size:13px;user-select:none;-webkit-user-select:none}
+#dash{right:108px;top:0}#flux{right:0;top:0;color:#00ff41;border-color:#00ff41}#use{right:54px;top:78px;color:#ff6b35;border-color:#ff6b35;width:120px}
+.active{background:rgba(255,107,53,.25)!important;box-shadow:0 0 18px rgba(255,107,53,.45)}
+.crt:before{content:"";position:fixed;inset:0;z-index:30;pointer-events:none;background:linear-gradient(rgba(18,16,16,0) 50%,rgba(0,0,0,.14) 50%),linear-gradient(90deg,rgba(255,0,0,.022),rgba(0,255,0,.01),rgba(0,0,255,.022));background-size:100% 2px,3px 100%;opacity:.68}
+@media (hover:none),(pointer:coarse),(max-width:900px){
+  .main-title{font-size:48px;letter-spacing:8px}.top-hud{gap:8px;top:12px;left:12px}.stat{width:116px;padding:8px}.stat-label{font-size:10px;letter-spacing:2px}.title{display:none}.log{font-size:12px;bottom:12px;max-width:48vw}
+}
+</style>
 </head>
-<body>
-    <div id="gameContainer">
-        <canvas id="canvas3d"></canvas>
-        <div id="hud">
-            <div class="stat">
-                <div class="stat-label">INTEGRIDAD</div>
-                <div class="stat-bar"><div class="stat-fill" id="integrityFill" style="width: 100%; background: #0f0"></div></div>
-                <div class="stat-value" id="integrityValue">100%</div>
-            </div>
-            <div class="stat">
-                <div class="stat-label">SEÑAL</div>
-                <div class="stat-bar"><div class="stat-fill" id="signalFill" style="width: 75%; background: #0ff"></div></div>
-                <div class="stat-value" id="signalValue">75%</div>
-            </div>
-            <div class="stat">
-                <div class="stat-label">RIESGO AOI</div>
-                <div class="stat-bar"><div class="stat-fill" id="aoiFill" style="width: 20%; background: #f60"></div></div>
-                <div class="stat-value" id="aoiValue">20%</div>
-            </div>
-            <div class="stat">
-                <div class="stat-label">ESTADO</div>
-                <div class="stat-bar"><div class="stat-fill" id="stateFill" style="width: 100%; background: #6f0"></div></div>
-                <div class="stat-value" id="stateValue">MÓVIL</div>
-            </div>
-            <div class="stat">
-                <div class="stat-label">FLUX</div>
-                <div class="stat-bar"><div class="stat-fill" id="fluxFill" style="width: 60%; background: #f96"></div></div>
-                <div class="stat-value" id="fluxValue">60%</div>
-            </div>
-        </div>
-        <div id="info">
-            A/D MOVER | SPACE SALTAR | SHIFT DASH | E HIDE | R REPARAR
-        </div>
-        <div id="debug"></div>
-        <div class="scanline"></div>
-        <div id="loading">
-            <div>INICIALIZANDO R3-W0RK...</div>
-            <div style="font-size: 11px; margin-top: 10px; color: #0a0;">CARGANDO PROTOCOLO DE SUPERVIVENCIA</div>
-            <div class="loading-bar"><div class="loading-bar-fill"></div></div>
-        </div>
-    </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/loaders/GLTFLoader.min.js"></script>
+<body class="crt">
+<div id="game"></div>
 
-    <script>
-        // ===== CONFIG =====
-        const CONFIG = {
-            modelPaths: ['R3WORK.glb', './R3WORK.glb', '../R3WORK.glb'],
-            worldBounds: { min: -8, max: 8 },
-            stats: {
-                health: 100,
-                signal: 75,
-                aoiRisk: 20,
-                flux: 60
-            }
-        };
+<div id="hud">
+  <div class="top-hud">
+    <div class="stat"><div class="stat-label">INTEGRIDAD</div><div class="bar"><div class="fill" id="integrityFill"></div></div></div>
+    <div class="stat"><div class="stat-label">SEÑAL</div><div class="bar"><div class="fill" id="signalFill"></div></div></div>
+    <div class="stat"><div class="stat-label">RIESGO AOI</div><div class="bar"><div class="fill" id="riskFill"></div></div></div>
+  </div>
+  <div class="title">BONEPILE 3D PROTOTYPE<div class="subtitle">R3-W0RK // UNREGISTERED NODE</div></div>
+  <div class="log" id="log">&gt; Inicializando WebGL. Esperando GLB.</div>
+</div>
 
-        // ===== SCENE SETUP =====
-        const canvas = document.getElementById('canvas3d');
-        const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x000000);
+<div id="touch">
+  <div class="dpad"><div class="touch-btn" id="up">▲</div><div class="touch-btn" id="left">◀</div><div class="touch-btn" id="right">▶</div><div class="touch-btn" id="down">▼</div></div>
+  <div class="actions"><div class="action" id="dash">DASH</div><div class="action" id="flux">FLUX</div><div class="action" id="use">E / USE</div></div>
+</div>
 
-        const camera = new THREE.PerspectiveCamera(
-            60,
-            window.innerWidth / (window.innerHeight - 100),
-            0.1,
-            1000
-        );
-        camera.position.set(0, 2, 3);
-        camera.lookAt(0, 0, 0);
+<div id="menu">
+  <div class="main-title">BONEPILE</div>
+  <div class="main-sub">// R3-W0RK GLB INTEGRATION //</div>
+  <div class="quote">“No necesitamos ser perfectos. Solo necesitamos seguir funcionando.”<br>— R3-W0RK</div>
+  <button id="startBtn">INICIAR 3D</button>
+</div>
 
-        const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
-        renderer.setSize(window.innerWidth, window.innerHeight - 100);
-        renderer.setClearColor(0x000000);
-        renderer.setPixelRatio(window.devicePixelRatio);
-        renderer.shadowMap.enabled = true;
-        renderer.shadowMap.type = THREE.PCFShadowShadowMap;
+<script type="module">
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
+import { GLTFLoader } from 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/GLTFLoader.js';
 
-        // ===== LIGHTING =====
-        const ambientLight = new THREE.AmbientLight(0x666666);
-        scene.add(ambientLight);
+const container = document.getElementById('game');
+const logBox = document.getElementById('log');
+const menu = document.getElementById('menu');
+const touch = document.getElementById('touch');
+const keys = {};
 
-        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-        directionalLight.position.set(5, 8, 5);
-        directionalLight.castShadow = true;
-        directionalLight.shadow.mapSize.width = 2048;
-        directionalLight.shadow.mapSize.height = 2048;
-        scene.add(directionalLight);
+let started = false;
+let integrity = 100;
+let signal = 100;
+let risk = 0;
+let fluxTimer = 0;
+let playerReady = false;
 
-        const pointLight = new THREE.PointLight(0x00ff00, 0.5);
-        pointLight.position.set(0, 2, 2);
-        scene.add(pointLight);
+function log(m){ logBox.innerHTML = '&gt; ' + m; }
 
-        // ===== GROUND =====
-        const groundGeom = new THREE.PlaneGeometry(20, 20);
-        const groundMat = new THREE.MeshStandardMaterial({
-            color: 0x0a1a0a,
-            metalness: 0.3,
-            roughness: 0.7
-        });
-        const ground = new THREE.Mesh(groundGeom, groundMat);
-        ground.rotation.x = -Math.PI / 2;
-        ground.receiveShadow = true;
-        ground.position.y = -0.1;
-        scene.add(ground);
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x050807);
+// FIX: fog menos agresivo para no oscurecer el modelo.
+scene.fog = new THREE.FogExp2(0x050807, 0.018);
 
-        const gridHelper = new THREE.GridHelper(20, 20, 0x00ff00, 0x003300);
-        gridHelper.position.y = 0;
-        scene.add(gridHelper);
+const camera = new THREE.PerspectiveCamera(50, innerWidth / innerHeight, 0.1, 150);
+// FIX: cámara más cerca y centrada para validar escala del GLB.
+camera.position.set(5.6, 4.8, 6.2);
+camera.lookAt(0, 0.8, 0);
 
-        // ===== GAME STATE =====
-        const gameState = {
-            model: null,
-            x: 0,
-            y: 0,
-            vx: 0,
-            vy: 0,
-            speed: 0.05,
-            dashing: false,
-            hidden: false,
-            state: 'IDLE',
-            health: CONFIG.stats.health,
-            signal: CONFIG.stats.signal,
-            aoiRisk: CONFIG.stats.aoiRisk,
-            flux: CONFIG.stats.flux,
-            animTime: 0,
-            direction: 1,
-            frameCount: 0
-        };
+const renderer = new THREE.WebGLRenderer({ antialias:true, powerPreference:'high-performance' });
+renderer.setSize(innerWidth, innerHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+// FIX: salida de color y exposición más visible en móvil.
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.55;
+container.appendChild(renderer.domElement);
 
-        // ===== LOAD MODEL =====
-        const loader = new THREE.GLTFLoader();
-        let modelLoaded = false;
+// LIGHTING FIX: más luz ambiental + key light más fuerte.
+scene.add(new THREE.HemisphereLight(0xb6cbb9, 0x111111, 2.35));
 
-        function loadModel(paths, index = 0) {
-            if (index >= paths.length) {
-                showError('No se encontró R3WORK.glb. Asegúrate de que el archivo esté en el mismo directorio.');
-                return;
-            }
+const keyLight = new THREE.DirectionalLight(0xffffff, 4.0);
+keyLight.position.set(4, 9, 5);
+keyLight.castShadow = true;
+keyLight.shadow.mapSize.set(2048, 2048);
+keyLight.shadow.camera.near = 0.5;
+keyLight.shadow.camera.far = 30;
+scene.add(keyLight);
 
-            loader.load(
-                paths[index],
-                onModelLoaded,
-                onProgress,
-                () => loadModel(paths, index + 1)
-            );
+const fillLight = new THREE.DirectionalLight(0x88aaff, 1.25);
+fillLight.position.set(-5, 4, -3);
+scene.add(fillLight);
+
+const copperLight = new THREE.PointLight(0xff6b35, 4.0, 18);
+copperLight.position.set(-3, 1.8, 2);
+scene.add(copperLight);
+
+const greenLight = new THREE.PointLight(0x00ff66, 2.0, 14);
+greenLight.position.set(3, 1.2, -2);
+scene.add(greenLight);
+
+const redLight = new THREE.PointLight(0xff0033, 1.8, 14);
+redLight.position.set(4, 2.2, -3);
+scene.add(redLight);
+
+// PCB floor.
+const floor = new THREE.Mesh(
+  new THREE.PlaneGeometry(26, 26),
+  new THREE.MeshStandardMaterial({ color:0x07110d, roughness:0.72, metalness:0.18 })
+);
+floor.rotation.x = -Math.PI / 2;
+floor.receiveShadow = true;
+scene.add(floor);
+
+const grid = new THREE.GridHelper(26, 26, 0x1a3c2b, 0x0e1f17);
+grid.position.y = 0.012;
+scene.add(grid);
+
+function trace(x,z,sx,sz){
+  const m = new THREE.Mesh(
+    new THREE.BoxGeometry(sx, .035, sz),
+    new THREE.MeshStandardMaterial({
+      color:0xb87333, emissive:0x5a2508, emissiveIntensity:1.15,
+      roughness:.35, metalness:.75
+    })
+  );
+  m.position.set(x,.04,z);
+  m.receiveShadow = true;
+  scene.add(m);
+}
+
+trace(0,0,19,.12); trace(-4,2.8,.12,8); trace(4.2,-2.2,.12,7);
+trace(2.2,3.5,7,.1); trace(-3.4,-3.6,6,.1); trace(0,-5.2,12,.09);
+
+function chip(x,z,sx,sz){
+  const b = new THREE.Mesh(
+    new THREE.BoxGeometry(sx,.28,sz),
+    new THREE.MeshStandardMaterial({ color:0x1b1b1b, roughness:.85, metalness:.25 })
+  );
+  b.position.set(x,.16,z);
+  b.castShadow = true;
+  b.receiveShadow = true;
+  scene.add(b);
+}
+chip(-5,-2.5,1.4,.9); chip(5.2,2.4,1.8,1.1); chip(0,4.4,2.2,.8);
+
+// AOI placeholder.
+const aoiGroup = new THREE.Group();
+const aoiBody = new THREE.Mesh(
+  new THREE.BoxGeometry(1.1,.45,.8),
+  new THREE.MeshStandardMaterial({ color:0x444444, roughness:.45, metalness:.65 })
+);
+aoiBody.castShadow = true; aoiGroup.add(aoiBody);
+
+const lens = new THREE.Mesh(
+  new THREE.SphereGeometry(.16,24,16),
+  new THREE.MeshStandardMaterial({ color:0xff0033, emissive:0xff0033, emissiveIntensity:3.0 })
+);
+lens.position.set(0,-.03,-.42); aoiGroup.add(lens);
+
+const aoiLight = new THREE.SpotLight(0xff0033,5.2,9,Math.PI/7,.45,1.2);
+aoiLight.position.set(0,-.1,-.45);
+aoiLight.target.position.set(0,-1,-4);
+aoiGroup.add(aoiLight); aoiGroup.add(aoiLight.target);
+aoiGroup.position.set(3,2.2,-3);
+scene.add(aoiGroup);
+
+// Player container.
+let player = new THREE.Group();
+scene.add(player);
+
+function createFallbackPlayer(){
+  const g = new THREE.Group();
+  const body = new THREE.Mesh(
+    new THREE.BoxGeometry(1.4,.28,1.0),
+    new THREE.MeshStandardMaterial({ color:0x2d2a24, roughness:.75, metalness:.42 })
+  );
+  body.castShadow = true; body.receiveShadow = true;
+  g.add(body);
+
+  const led = new THREE.Mesh(
+    new THREE.SphereGeometry(.06,16,8),
+    new THREE.MeshStandardMaterial({ color:0x00ff66, emissive:0x00ff66, emissiveIntensity:2 })
+  );
+  led.position.set(.35,.18,-.25); g.add(led);
+
+  for(let i=0;i<8;i++){
+    const pinL = new THREE.Mesh(
+      new THREE.BoxGeometry(.08,.08,.18),
+      new THREE.MeshStandardMaterial({ color:0xb9a383, roughness:.4, metalness:.9 })
+    );
+    pinL.position.set(-.8, -.05, -.42 + i*.12);
+    g.add(pinL);
+
+    const pinR = pinL.clone();
+    pinR.position.x = .8;
+    g.add(pinR);
+  }
+  return g;
+}
+
+// Fallback visible immediately so the scene never looks frozen.
+const fallback = createFallbackPlayer();
+fallback.position.set(0,.3,0);
+player.add(fallback);
+player.position.set(0,0,0);
+log('Escena 3D activa. Cargando ./R3WORK.glb...');
+
+// GLB loading with safe fallback.
+const loader = new GLTFLoader();
+loader.load('./R3WORK.glb',
+  (gltf)=>{
+    try{
+      player.remove(fallback);
+      const model = gltf.scene;
+
+      model.traverse((o)=>{
+        if(o.isMesh){
+          o.castShadow = true;
+          o.receiveShadow = true;
+          if(o.material){
+            o.material.side = THREE.FrontSide;
+            o.material.needsUpdate = true;
+          }
         }
+      });
 
-        function onModelLoaded(gltf) {
-            modelLoaded = true;
-            gameState.model = gltf.scene;
-            gameState.model.position.set(0, 0, 0);
-            gameState.model.scale.set(1, 1, 1);
-            gameState.model.castShadow = true;
-            gameState.model.receiveShadow = true;
+      const box = new THREE.Box3().setFromObject(model);
+      const size = new THREE.Vector3();
+      const center = new THREE.Vector3();
+      box.getSize(size);
+      box.getCenter(center);
 
-            gameState.model.traverse((node) => {
-                if (node.isMesh) {
-                    node.castShadow = true;
-                    node.receiveShadow = true;
-                }
-            });
+      const maxDim = Math.max(size.x,size.y,size.z) || 1;
+      // FIX: modelo más grande para validación visual.
+      const scale = 4.0 / maxDim;
+      model.scale.setScalar(scale);
 
-            scene.add(gameState.model);
-            document.getElementById('loading').classList.add('hidden');
-            animate();
-        }
+      // Recalcular centro después de escala, corregir posición al origen.
+      const box2 = new THREE.Box3().setFromObject(model);
+      const center2 = new THREE.Vector3();
+      box2.getCenter(center2);
+      model.position.sub(center2);
+      model.position.y += 1.15;
 
-        function onProgress(event) {
-            if (event.lengthComputable) {
-                const progress = (event.loaded / event.total) * 100;
-                document.querySelector('.loading-bar-fill').style.width = progress + '%';
-            }
-        }
+      model.rotation.y = Math.PI;
+      player.add(model);
 
-        function showError(msg) {
-            document.getElementById('loading').innerHTML = `
-                <div style="color: #f60;">ERROR</div>
-                <div style="font-size: 11px; margin-top: 10px;">${msg}</div>
-            `;
-        }
+      player.position.set(0,0,0);
+      playerReady = true;
+      log('R3-W0RK GLB cargado. Scale fix aplicado. Inicia secuencia.');
+    }catch(e){
+      console.error(e);
+      log('GLB cargó, pero falló al procesar. Usando fallback SOIC.');
+    }
+  },
+  (xhr)=>{
+    if(xhr.total){
+      const p = Math.round((xhr.loaded / xhr.total) * 100);
+      log('Cargando R3WORK.glb... ' + p + '%');
+    }
+  },
+  (err)=>{
+    console.error(err);
+    log('ERROR al cargar ./R3WORK.glb. Usando fallback. Verifica nombre exacto y mayúsculas.');
+  }
+);
 
-        // ===== INPUT =====
-        const keys = {};
-        window.addEventListener('keydown', (e) => {
-            keys[e.key.toLowerCase()] = true;
-            if (e.key === ' ') {
-                e.preventDefault();
-                jump();
-            }
-            if (e.key.toLowerCase() === 'shift') {
-                dash();
-            }
-            if (e.key.toLowerCase() === 'e') {
-                toggleHide();
-            }
-            if (e.key.toLowerCase() === 'r') {
-                repair();
-            }
-        });
-        window.addEventListener('keyup', (e) => {
-            keys[e.key.toLowerCase()] = false;
-        });
+addEventListener('keydown',e=>keys[e.code]=true);
+addEventListener('keyup',e=>keys[e.code]=false);
 
-        // ===== ABILITIES =====
-        function jump() {
-            if (gameState.model) {
-                gameState.model.position.y += 0.3;
-                setTimeout(() => {
-                    if (gameState.model) gameState.model.position.y = 0;
-                }, 200);
-            }
-        }
+function bindTouch(id,code,tapFn=null){
+  const el=document.getElementById(id);
+  const down=e=>{e.preventDefault();el.classList.add('active');keys[code]=true;if(tapFn)tapFn()};
+  const up=e=>{e.preventDefault();el.classList.remove('active');keys[code]=false};
+  el.addEventListener('touchstart',down,{passive:false});
+  el.addEventListener('touchend',up,{passive:false});
+  el.addEventListener('touchcancel',up,{passive:false});
+  el.addEventListener('mousedown',down);
+  el.addEventListener('mouseup',up);
+  el.addEventListener('mouseleave',up);
+}
+bindTouch('up','KeyW'); bindTouch('left','KeyA'); bindTouch('right','KeyD'); bindTouch('down','KeyS');
+bindTouch('dash','ShiftLeft'); bindTouch('flux','Space',()=>useFlux());
+bindTouch('use','KeyE',()=>log('Rework interaction pending. Banco no conectado en v2.1.'));
 
-        function dash() {
-            if (gameState.flux > 20 && !gameState.dashing) {
-                gameState.dashing = true;
-                gameState.flux = Math.max(0, gameState.flux - 25);
-                setTimeout(() => {
-                    gameState.dashing = false;
-                }, 300);
-            }
-        }
+document.addEventListener('touchmove', e=>{
+  if(started) e.preventDefault();
+},{passive:false});
 
-        function toggleHide() {
-            gameState.hidden = !gameState.hidden;
-        }
+document.getElementById('startBtn').addEventListener('click',()=>{
+  started = true;
+  menu.style.display = 'none';
+  touch.classList.add('visible');
+  log(playerReady ? 'Secuencia 3D iniciada. R3-W0RK operativo.' : 'Secuencia iniciada. GLB aún cargando o usando fallback.');
+});
 
-        function repair() {
-            if (gameState.flux > 10) {
-                gameState.health = Math.min(100, gameState.health + 30);
-                gameState.flux = Math.max(0, gameState.flux - 15);
-            }
-        }
+function useFlux(){
+  if(!started) return;
+  fluxTimer = 180;
+  risk = Math.max(0, risk - 45);
+  log('Flux cloud deployed. AOI optical confidence degraded.');
+}
 
-        // ===== UPDATE =====
-        function update() {
-            if (!gameState.model) return;
+function hud(){
+  document.getElementById('integrityFill').style.width = integrity + '%';
+  document.getElementById('signalFill').style.width = signal + '%';
+  document.getElementById('riskFill').style.width = risk + '%';
+}
 
-            gameState.frameCount++;
+function animate(){
+  requestAnimationFrame(animate);
+  const t = performance.now() * .001;
 
-            // Movement
-            gameState.vx = 0;
-            if (keys['a'] || keys['arrowleft']) {
-                gameState.vx = -gameState.speed;
-                gameState.direction = -1;
-            }
-            if (keys['d'] || keys['arrowright']) {
-                gameState.vx = gameState.speed;
-                gameState.direction = 1;
-            }
+  aoiGroup.position.x = 3 + Math.sin(t*.8)*2.4;
+  aoiGroup.rotation.y = Math.sin(t*.8)*.6;
+  copperLight.intensity = 3.3 + Math.sin(t*3)*.45;
 
-            gameState.x += gameState.vx;
-            gameState.x = Math.max(CONFIG.worldBounds.min, Math.min(CONFIG.worldBounds.max, gameState.x));
-            gameState.model.position.x = gameState.x;
+  // Always rotate fallback/model subtly in menu so user sees 3D is alive.
+  if(!started){
+    player.rotation.y += 0.004;
+  }
 
-            // State machine
-            if (Math.abs(gameState.vx) > 0.01) {
-                gameState.state = 'WALK';
-                gameState.animTime += 0.05;
-            } else {
-                gameState.state = 'IDLE';
-                gameState.animTime = 0;
-            }
+  if(started){
+    const move = new THREE.Vector3();
+    if(keys.KeyW||keys.ArrowUp) move.z -= 1;
+    if(keys.KeyS||keys.ArrowDown) move.z += 1;
+    if(keys.KeyA||keys.ArrowLeft) move.x -= 1;
+    if(keys.KeyD||keys.ArrowRight) move.x += 1;
 
-            if (gameState.dashing) {
-                gameState.state = 'DASH';
-            }
+    if(move.lengthSq()>0){
+      move.normalize();
+      const fast = (keys.ShiftLeft||keys.ShiftRight) && signal > 2;
+      const speed = fast ? .105 : .055;
+      if(fast) signal = Math.max(0, signal - .22);
+      player.position.add(move.multiplyScalar(speed));
+      const targetRot = Math.atan2(move.x, move.z);
+      player.rotation.y = THREE.MathUtils.lerp(player.rotation.y, targetRot, .16);
+    }else{
+      signal = Math.min(100, signal + .04);
+    }
 
-            if (gameState.hidden) {
-                gameState.state = 'HIDE';
-            }
+    player.position.x = THREE.MathUtils.clamp(player.position.x,-9,9);
+    player.position.z = THREE.MathUtils.clamp(player.position.z,-9,9);
 
-            // Stat degradation
-            if (gameState.state === 'WALK') {
-                gameState.health -= 0.01;
-                gameState.aoiRisk += 0.005;
-            }
-            if (gameState.state === 'DASH') {
-                gameState.health -= 0.03;
-                gameState.aoiRisk += 0.02;
-                gameState.flux -= 0.02;
-            }
+    const dx = player.position.x - aoiGroup.position.x;
+    const dz = player.position.z - aoiGroup.position.z;
+    const d = Math.sqrt(dx*dx + dz*dz);
 
-            // Recovery
-            gameState.signal = Math.min(100, gameState.signal + 0.01);
-            if (gameState.hidden) {
-                gameState.aoiRisk = Math.max(0, gameState.aoiRisk - 0.05);
-            }
+    if(d < 4.5 && fluxTimer <= 0){
+      risk = Math.min(100, risk + .35);
+      if(risk > 80) integrity = Math.max(0, integrity - .08);
+    }else{
+      risk = Math.max(0, risk - .18);
+    }
+    if(fluxTimer > 0) fluxTimer--;
 
-            // Clamp
-            gameState.health = Math.max(0, Math.min(100, gameState.health));
-            gameState.signal = Math.max(0, Math.min(100, gameState.signal));
-            gameState.aoiRisk = Math.max(0, Math.min(100, gameState.aoiRisk));
-            gameState.flux = Math.max(0, Math.min(100, gameState.flux));
+    const desired = new THREE.Vector3(player.position.x+5.4, 4.7, player.position.z+6.0);
+    camera.position.lerp(desired, .045);
+    camera.lookAt(player.position.x, 1.0, player.position.z);
+    player.position.y = Math.sin(t*3.2)*.018;
+  }
 
-            // Model animation
-            gameState.model.rotation.y = gameState.direction === 1 ? 0 : Math.PI;
+  hud();
+  renderer.render(scene,camera);
+}
 
-            if (gameState.state === 'IDLE') {
-                gameState.model.position.y = Math.sin(Date.now() * 0.001) * 0.1;
-            }
+addEventListener('resize',()=>{
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth,innerHeight);
+});
 
-            if (gameState.state === 'WALK') {
-                gameState.model.position.y = Math.sin(gameState.animTime) * 0.15;
-            }
-
-            if (gameState.dashing) {
-                gameState.x += gameState.direction * 0.3;
-                gameState.model.position.x = gameState.x;
-                gameState.model.position.y = Math.cos(Date.now() * 0.01) * 0.2;
-            }
-
-            if (gameState.hidden) {
-                gameState.model.scale.set(0.7, 0.7, 0.7);
-                gameState.model.position.y = -0.3;
-            } else {
-                gameState.model.scale.set(1, 1, 1);
-            }
-
-            updateHUD();
-            updateDebug();
-        }
-
-        // ===== HUD =====
-        function updateHUD() {
-            document.getElementById('integrityFill').style.width = gameState.health + '%';
-            document.getElementById('integrityValue').textContent = Math.round(gameState.health) + '%';
-
-            document.getElementById('signalFill').style.width = gameState.signal + '%';
-            document.getElementById('signalValue').textContent = Math.round(gameState.signal) + '%';
-
-            document.getElementById('aoiFill').style.width = gameState.aoiRisk + '%';
-            document.getElementById('aoiValue').textContent = Math.round(gameState.aoiRisk) + '%';
-
-            document.getElementById('stateValue').textContent = gameState.state;
-
-            document.getElementById('fluxFill').style.width = gameState.flux + '%';
-            document.getElementById('fluxValue').textContent = Math.round(gameState.flux) + '%';
-        }
-
-        function updateDebug() {
-            const debug = document.getElementById('debug');
-            debug.innerHTML = `
-FRAME: ${gameState.frameCount}<br>
-POS: ${gameState.x.toFixed(2)}<br>
-STATE: ${gameState.state}<br>
-HIDDEN: ${gameState.hidden ? 'YES' : 'NO'}<br>
-HEALTH: ${Math.round(gameState.health)}%<br>
-FLUX: ${Math.round(gameState.flux)}%
-            `;
-        }
-
-        // ===== ANIMATION LOOP =====
-        function animate() {
-            update();
-            renderer.render(scene, camera);
-            requestAnimationFrame(animate);
-        }
-
-        // ===== RESPONSIVE =====
-        window.addEventListener('resize', () => {
-            camera.aspect = window.innerWidth / (window.innerHeight - 100);
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight - 100);
-        });
-
-        // ===== START =====
-        loadModel(CONFIG.modelPaths);
-    </script>
+animate();
+</script>
 </body>
 </html>
