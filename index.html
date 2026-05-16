@@ -1,270 +1,422 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no" />
-<title>BONEPILE - R3-W0RK 3D</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>BONEPILE 64 — R3-W0RK N64 Edition</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
-*{box-sizing:border-box;margin:0;padding:0}
-body{overflow:hidden;background:#030504;color:#c8c8c8;font-family:'Share Tech Mono',monospace;touch-action:none}
-#game{position:fixed;inset:0;background:#020303}
-#hud{position:fixed;inset:0;pointer-events:none;z-index:10}
-.top-hud{position:absolute;top:18px;left:18px;display:flex;gap:12px}
-.stat{width:150px;background:rgba(5,8,8,.72);border:1px solid rgba(90,138,106,.75);padding:10px 12px}
-.stat-label{color:#7fb18d;font-size:12px;letter-spacing:3px;margin-bottom:8px}
-.bar{height:8px;background:#151817;overflow:hidden}.fill{height:100%;transition:width .2s}
-#integrityFill{width:100%;background:#ff6b35}#signalFill{width:100%;background:#00a8ff}#riskFill{width:0%;background:#ff0033}
-.title{position:absolute;top:18px;right:22px;text-align:right;color:#b87333;letter-spacing:3px;font-size:16px;text-shadow:0 0 8px rgba(184,115,51,.5)}
-.subtitle{color:#5a8a6a;font-size:11px;margin-top:4px;letter-spacing:1px}
-.log{position:absolute;left:18px;bottom:22px;width:min(520px,calc(100vw - 36px));min-height:52px;padding:12px 16px;background:rgba(5,8,8,.78);border-left:3px solid #ff6b35;color:#b8b8b8;font-size:14px;line-height:1.5}
-#menu{position:fixed;inset:0;z-index:20;display:flex;flex-direction:column;justify-content:center;align-items:center;background:rgba(2,3,3,.88);text-align:center}
-.main-title{font-size:70px;letter-spacing:12px;color:#cfcfcf;text-shadow:0 0 18px rgba(255,255,255,.16),0 8px 0 #191919}
-.main-sub{margin-top:18px;padding-bottom:12px;border-bottom:1px solid #2a4a3a;color:#7fb18d;letter-spacing:6px;font-size:15px}
-.quote{margin:35px 0;max-width:620px;color:#777;font-style:italic;line-height:1.6}
-button{font-family:'Share Tech Mono',monospace;background:rgba(5,8,8,.6);color:#ff6b35;border:1px solid #ff6b35;padding:14px 36px;letter-spacing:4px;font-size:15px;cursor:pointer}
-#touch{display:none;position:fixed;inset:0;z-index:15;pointer-events:none}
-.dpad{position:absolute;left:28px;bottom:28px;width:162px;height:162px;pointer-events:auto}
-.touch-btn{position:absolute;width:58px;height:58px;display:flex;justify-content:center;align-items:center;border:1px solid rgba(255,107,53,.75);color:#ff6b35;background:rgba(6,8,8,.66);font-size:22px;user-select:none}
-#up{left:52px;top:0}#left{left:0;top:52px}#right{left:104px;top:52px}#down{left:52px;top:104px}
-.actions{position:absolute;right:28px;bottom:34px;width:270px;height:150px;pointer-events:auto}
-.action{position:absolute;width:92px;height:60px;border-radius:14px;border:1px solid rgba(90,138,106,.85);color:#7fb18d;background:rgba(6,8,8,.66);display:flex;justify-content:center;align-items:center;letter-spacing:3px;font-size:13px;user-select:none}
-#dash{right:108px;top:0}#flux{right:0;top:0;color:#00ff41;border-color:#00ff41}#use{right:54px;top:78px;color:#ff6b35;border-color:#ff6b35;width:120px}
-.active{background:rgba(255,107,53,.25)!important;box-shadow:0 0 18px rgba(255,107,53,.45)}
-.crt:before{content:"";position:fixed;inset:0;z-index:30;pointer-events:none;background:linear-gradient(rgba(18,16,16,0) 50%,rgba(0,0,0,.18) 50%),linear-gradient(90deg,rgba(255,0,0,.025),rgba(0,255,0,.012),rgba(0,0,255,.025));background-size:100% 2px,3px 100%;opacity:.75}
-@media (hover:none),(pointer:coarse),(max-width:900px){#touch{display:block}.main-title{font-size:48px;letter-spacing:8px}.top-hud{gap:8px;top:12px;left:12px}.stat{width:116px;padding:8px}.stat-label{font-size:10px;letter-spacing:2px}.title{display:none}.log{font-size:12px;bottom:12px;max-width:45vw}}
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+  * { margin:0; padding:0; box-sizing:border-box; user-select: none; }
+  html, body {
+    background: #050508; color: #fff;
+    font-family: 'Share Tech Mono', monospace;
+    overflow: hidden; width: 100vw; height: 100vh;
+  }
+  
+  /* Contenedor principal de la pantalla estilo CRT / N64 */
+  #game-container {
+    position: absolute; top: 50%; left: 50%;
+    width: 960px; height: 640px;
+    transform: translate(-50%, -50%);
+    border: 12px solid #2a2b30;
+    border-radius: 8px;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.8);
+    background: #000;
+    overflow: hidden;
+  }
+
+  /* Renderizador con pixelación forzada */
+  canvas {
+    width: 100% !important;
+    height: 100% !important;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+  }
+
+  /* Interfaz estilo Conker's / Rareware N64 */
+  #hud {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    pointer-events: none; padding: 20px;
+    display: flex; flex-direction: column; justify-content: space-between;
+  }
+
+  .hud-top {
+    display: flex; justify-content: space-between; width: 100%;
+  }
+
+  .n64-bar-container {
+    background: rgba(0,0,0,0.6); padding: 8px 15px; border: 3px solid #edaf22;
+    border-radius: 4px; box-shadow: 3px 3px 0px #000;
+  }
+
+  .n64-title {
+    color: #edaf22; font-size: 18px; font-weight: bold; text-transform: uppercase;
+    text-shadow: 2px 2px 0px #000; margin-bottom: 4px;
+  }
+
+  .bar-outer {
+    width: 200px; height: 16px; background: #222; border: 2px solid #fff; overflow: hidden;
+  }
+  .bar-inner {
+    height: 100%; width: 100%; background: #00ff66; transition: width 0.2s;
+  }
+  .bar-inner.signal { background: #00ccff; }
+
+  .hud-bottom {
+    display: flex; justify-content: space-between; align-items: flex-end;
+  }
+
+  .counter-box {
+    background: rgba(0,0,0,0.7); border: 3px solid #ff5555; padding: 10px;
+    font-size: 22px; color: #fff; font-weight: bold; text-shadow: 2px 2px 0px #000;
+    box-shadow: 4px 4px 0px #000; border-radius: 4px;
+  }
+
+  /* Log de eventos con estilo de terminal industrial de los 90 */
+  #gameLog {
+    background: rgba(10,12,18,0.85); border-left: 5px solid #edaf22;
+    padding: 10px; font-size: 13px; color: #00ff66; width: 350px;
+    box-shadow: 3px 3px 8px rgba(0,0,0,0.5);
+  }
+
+  /* Superposición CRT para simular tubo de televisión antiguo */
+  #crt-overlay {
+    position: absolute; top:0; left:0; width:100%; height:100%;
+    background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+    background-size: 100% 4px, 6px 100%;
+    pointer-events: none; z-index: 10;
+  }
+
+  /* Pantalla de inicio estilo Rareware boot screen */
+  #boot-screen {
+    position: absolute; top:0; left:0; width:100%; height:100%;
+    background: #050508; z-index: 100; display: flex; flex-direction: column;
+    justify-content: center; align-items: center; transition: opacity 0.5s ease;
+  }
+
+  .boot-logo {
+    font-size: 56px; font-weight: bold; color: #ff5500; text-shadow: 4px 4px 0px #000;
+    letter-spacing: 4px; margin-bottom: 20px; text-transform: uppercase;
+    border: 5px solid #ff5500; padding: 10px 30px; transform: rotate(-3deg);
+  }
+
+  .boot-text {
+    font-size: 16px; color: #888; text-transform: uppercase; letter-spacing: 2px;
+  }
 </style>
+
+<!-- Cargar Three.js y dependencias críticas para manejo de GLB -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 </head>
-<body class="crt">
-<div id="game"></div>
-<div id="hud">
-  <div class="top-hud">
-    <div class="stat"><div class="stat-label">INTEGRIDAD</div><div class="bar"><div class="fill" id="integrityFill"></div></div></div>
-    <div class="stat"><div class="stat-label">SENAL</div><div class="bar"><div class="fill" id="signalFill"></div></div></div>
-    <div class="stat"><div class="stat-label">RIESGO AOI</div><div class="bar"><div class="fill" id="riskFill"></div></div></div>
+<body>
+
+<div id="game-container">
+  <div id="crt-overlay"></div>
+  
+  <!-- Pantalla de Carga/Boot de Rareware -->
+  <div id="boot-screen">
+    <div class="boot-logo">BONEPILE 64</div>
+    <div class="boot-text">Cargando modulo SOIC-16 (R3WORK.glb)...</div>
   </div>
-  <div class="title">BONEPILE 3D<div class="subtitle">R3-W0RK // UNREGISTERED NODE</div></div>
-  <div class="log" id="log">&gt; Sistema de animación cargado. R3-W0RK despertando...</div>
+
+  <!-- Contenedor del Canvas WebGL -->
+  <div id="canvas-holder" style="width:100%; height:100%;"></div>
+
+  <!-- HUD del juego -->
+  <div id="hud">
+    <div class="hud-top">
+      <div class="n64-bar-container">
+        <div class="n64-title">Integridad R3-WORK</div>
+        <div class="bar-outer"><div id="hp-bar" class="bar-inner"></div></div>
+      </div>
+      <div class="n64-bar-container">
+        <div class="n64-title">Calidad de Señal</div>
+        <div class="bar-outer"><div id="signal-bar" class="bar-inner signal"></div></div>
+      </div>
+    </div>
+
+    <div class="hud-bottom">
+      <div id="gameLog">> SMT CONTROL CENTER INITIALIZED. ESPERANDO ENTRADA...</div>
+      <div class="counter-box">
+        SCRAP: <span id="scrap-count">00</span>
+      </div>
+    </div>
+  </div>
 </div>
-<div id="touch">
-  <div class="dpad"><div class="touch-btn" id="up">▲</div><div class="touch-btn" id="left">◀</div><div class="touch-btn" id="right">▶</div><div class="touch-btn" id="down">▼</div></div>
-  <div class="actions"><div class="action" id="dash">DASH</div><div class="action" id="flux">FLUX</div><div class="action" id="use">E / USE</div></div>
-</div>
-<div id="menu">
-  <div class="main-title">BONEPILE</div>
-  <div class="main-sub">// R3-W0RK AWAKENING //</div>
-  <div class="quote">No necesitamos ser perfectos.<br>Solo necesitamos seguir funcionando.</div>
-  <button id="startBtn">INICIAR 3D</button>
-</div>
 
-<script type="module">
-import * as THREE from 'https://unpkg.com/three@0.160.0/build/three.module.js';
-import { GLTFLoader } from 'https://unpkg.com/three@0.160.0/examples/jsm/loaders/GLTFLoader.js';
+<script>
+  /* ================= CONFIGURACIÓN N64 ENGINE ================= */
+  const HOLDER = document.getElementById('canvas-holder');
+  let scene, camera, renderer, clock;
+  let playerModel = null, mixer = null;
+  let moveDirection = { x: 0, z: 0 };
+  let playerPhysics = { x: 0, y: 0, z: 0, rotation: 0, speed: 0.15 };
+  let keys = {};
+  
+  // Configuración de baja resolución artificial para simular el hardware N64 (320x240 escalado)
+  const N64_WIDTH = 480;
+  const N64_HEIGHT = 320;
 
-const container = document.getElementById('game');
-const logBox = document.getElementById('log');
-const menu = document.getElementById('menu');
+  function init() {
+    // 1. Crear Escena y Reloj
+    scene = new THREE.Scene();
+    scene.background = new THREE.Color('#0b0e14');
+    scene.fog = new THREE.FogExp2('#0b0e14', 0.05);
+    clock = new THREE.Clock();
 
-let started = false;
-let integrity = 100, signal = 100, risk = 0, flux = 80;
-let player, model, mixer, actions = {};
-let currentState = 'idle';
-let velocity = new THREE.Vector3();
-let isJumping = false;
-let jumpVelocity = 0;
+    // 2. Cámara con lente de la época (FOV intermedio)
+    camera = new THREE.PerspectiveCamera(60, N64_WIDTH / N64_HEIGHT, 0.1, 1000);
 
-const keys = {};
-const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x020404);
-scene.fog = new THREE.FogExp2(0x020404, 0.045);
+    // 3. Renderizador WebGL con deshabilitación de Antialiasing para forzar bordes pixelados
+    renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: "high-performance" });
+    renderer.setSize(N64_WIDTH, N64_HEIGHT);
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.BasicShadowMap; // Sombras pixeladas retro
+    HOLDER.appendChild(renderer.domElement);
 
-const camera = new THREE.PerspectiveCamera(50, innerWidth/innerHeight, 0.1, 120);
-camera.position.set(8, 9, 10);
+    // Ajustar estilos para que ocupe todo el espacio escalado por CSS
+    renderer.domElement.style.width = '100%';
+    renderer.domElement.style.height = '100%';
 
-const renderer = new THREE.WebGLRenderer({ antialias: true });
-renderer.setSize(innerWidth, innerHeight);
-renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
-renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-container.appendChild(renderer.domElement);
+    // 4. Iluminación Directa / Vértices (Muted & Industrial)
+    const ambientLight = new THREE.AmbientLight('#223344', 1.5);
+    scene.add(ambientLight);
 
-// Luces
-scene.add(new THREE.HemisphereLight(0x9fb3a2, 0x101010, 1.3));
-const keyLight = new THREE.DirectionalLight(0xffffff, 2.2);
-keyLight.position.set(5, 12, 6);
-keyLight.castShadow = true;
-keyLight.shadow.mapSize.set(2048, 2048);
-scene.add(keyLight);
+    const dirLight = new THREE.DirectionalLight('#ffaa44', 2.0);
+    dirLight.position.set(20, 40, 20);
+    dirLight.castShadow = true;
+    dirLight.shadow.mapSize.width = 256; // Mapa de sombras de baja resolución estilo N64
+    dirLight.shadow.mapSize.height = 256;
+    scene.add(dirLight);
 
-const copperLight = new THREE.PointLight(0xff6b35, 2.8, 15);
-copperLight.position.set(-3, 2, 3);
-scene.add(copperLight);
+    // Luz de emergencia parpadeante del nivel
+    const pointLight = new THREE.PointLight('#ff0033', 3, 30);
+    pointLight.position.set(0, 5, 0);
+    scene.add(pointLight);
 
-// Suelo y decoración
-const floor = new THREE.Mesh(
-  new THREE.PlaneGeometry(30, 30),
-  new THREE.MeshStandardMaterial({color: 0x07110d, roughness: 0.75, metalness: 0.2})
-);
-floor.rotation.x = -Math.PI/2;
-floor.receiveShadow = true;
-scene.add(floor);
+    // 5. Construcción del Entorno de Manufactura (Placa PCB Tridimensional)
+    buildPCBWorld();
 
-const grid = new THREE.GridHelper(30, 30, 0x1a3c2b, 0x0e1f17);
-grid.position.y = 0.01;
-scene.add(grid);
+    // 6. Carga del archivo R3WORK.glb desde la raíz del repositorio o carga local
+    loadPlayerModel();
 
-// === PLAYER ===
-player = new THREE.Group();
-scene.add(player);
+    // 7. Eventos de Control
+    window.addEventListener('keydown', (e) => { keys[e.code] = true; });
+    window.addEventListener('keyup', (e) => { keys[e.code] = false; });
 
-const loader = new GLTFLoader();
-loader.load('./R3WORK.glb', (gltf) => {
-    model = gltf.scene;
-    model.traverse(o => {
-        if (o.isMesh) {
-            o.castShadow = true;
-            o.receiveShadow = true;
-        }
-    });
+    // Iniciar bucle de renderizado
+    animate();
+  }
 
-    const box = new THREE.Box3().setFromObject(model);
-    const size = new THREE.Vector3();
-    box.getSize(size);
-    const scale = 1.6 / Math.max(size.x, size.y, size.z);
-    model.scale.setScalar(scale);
-    model.position.sub(box.getCenter(new THREE.Vector3()).multiplyScalar(scale));
-    model.rotation.y = Math.PI;
+  /* ================= MUNDO TRIDIMENSIONAL RETRO ================= */
+  function buildPCBWorld() {
+    // El suelo es una gran placa verde de circuito impreso
+    const pcbGeo = new THREE.BoxGeometry(200, 2, 200);
+    
+    // Crear una textura procedural pixelada rápida para el suelo
+    const canvasTexture = document.createElement('canvas');
+    canvasTexture.width = 64; canvasTexture.height = 64;
+    const ctxTex = canvasTexture.getContext('2d');
+    ctxTex.fillStyle = '#123a24'; ctxTex.fillRect(0,0,64,64);
+    ctxTex.fillStyle = '#1b5235';
+    for(let i=0; i<8; i++) { ctxTex.fillRect(i*8, 0, 2, 64); ctxTex.fillRect(0, i*8, 64, 2); }
+    
+    const texture = new THREE.CanvasTexture(canvasTexture);
+    texture.magFilter = THREE.NearestFilter; // Filtrado retro sin suavizado moderno
+    texture.minFilter = THREE.NearestFilter;
+    texture.wrapS = THREE.RepeatWrapping; texture.wrapT = THREE.RepeatWrapping;
+    texture.repeat.set(10, 10);
 
-    player.add(model);
-    player.position.set(-6, 0.1, 0);
+    const pcbMat = new THREE.MeshLambertMaterial({ map: texture });
+    const pcbFloor = new THREE.Mesh(pcbGeo, pcbMat);
+    pcbFloor.position.y = -1;
+    pcbFloor.receiveShadow = true;
+    scene.add(pcbFloor);
 
-    // Animaciones
-    mixer = new THREE.AnimationMixer(model);
-    gltf.animations.forEach(clip => {
-        const action = mixer.clipAction(clip);
-        actions[clip.name.toLowerCase()] = action;
-    });
-
-    log('✅ R3-W0RK cobró vida. Animaciones cargadas.');
-}, undefined, err => {
-    console.error(err);
-    log('ERROR: No se pudo cargar R3WORK.glb');
-});
-
-// Controles
-addEventListener('keydown', e => keys[e.code] = true);
-addEventListener('keyup', e => keys[e.code] = false);
-
-function log(m) { logBox.innerHTML = '&gt; ' + m; }
-
-// Touch controls (mantengo los existentes)
-function bindTouch(id, code, tapFn = null) {
-    const el = document.getElementById(id);
-    const down = e => { e.preventDefault(); el.classList.add('active'); keys[code] = true; if(tapFn) tapFn(); };
-    const up = e => { e.preventDefault(); el.classList.remove('active'); keys[code] = false; };
-    ['touchstart','mousedown'].forEach(ev => el.addEventListener(ev, down));
-    ['touchend','touchcancel','mouseup','mouseleave'].forEach(ev => el.addEventListener(ev, up));
-}
-bindTouch('up','KeyW'); bindTouch('left','KeyA'); bindTouch('right','KeyD'); bindTouch('down','KeyS');
-bindTouch('dash','ShiftLeft');
-bindTouch('flux','Space', () => { if(started) useFlux(); });
-bindTouch('use','KeyE', () => log('Interacción pendiente...'));
-
-document.getElementById('startBtn').addEventListener('click', () => {
-    started = true;
-    menu.style.display = 'none';
-    log('Secuencia de arranque completada. R3-W0RK operativo.');
-});
-
-function useFlux() {
-    if (!started || flux < 25) return;
-    flux -= 25;
-    log('FLUX deployed - AOI confundido temporalmente');
-}
-
-// HUD
-function updateHUD() {
-    document.getElementById('integrityFill').style.width = integrity + '%';
-    document.getElementById('signalFill').style.width = signal + '%';
-    document.getElementById('riskFill').style.width = risk + '%';
-}
-
-function updateAnimation(delta) {
-    if (!mixer || !model) return;
-    mixer.update(delta);
-}
-
-function applyProcedural(t) {
-    if (!model) return;
-    // Bobbing + breathing
-    model.position.y = 0.1 + Math.sin(t * 4) * 0.022;
-    const breath = 1 + Math.sin(t * 3) * 0.015;
-    model.scale.setScalar(1.6 * breath); // sutil efecto de "vida"
-}
-
-let lastTime = performance.now();
-
-function animate() {
-    requestAnimationFrame(animate);
-    const now = performance.now();
-    const delta = (now - lastTime) / 1000;
-    lastTime = now;
-    const t = now * 0.001;
-
-    if (started && model) {
-        const move = new THREE.Vector3();
-        if (keys.KeyW || keys.ArrowUp) move.z -= 1;
-        if (keys.KeyS || keys.ArrowDown) move.z += 1;
-        if (keys.KeyA || keys.ArrowLeft) move.x -= 1;
-        if (keys.KeyD || keys.ArrowRight) move.x += 1;
-
-        const isMoving = move.lengthSq() > 0;
-        const isDashing = (keys.ShiftLeft || keys.ShiftRight) && isMoving;
-
-        if (isMoving) {
-            move.normalize();
-            const speed = isDashing ? 0.14 : 0.07;
-            player.position.add(move.multiplyScalar(speed));
-
-            const targetRot = Math.atan2(move.x, move.z);
-            player.rotation.y = THREE.MathUtils.lerp(player.rotation.y, targetRot, 0.18);
-        }
-
-        // Salto
-        if ((keys.Space) && !isJumping) {
-            isJumping = true;
-            jumpVelocity = 0.18;
-            log('Jump!');
-        }
-        if (isJumping) {
-            player.position.y += jumpVelocity;
-            jumpVelocity -= 0.012; // gravedad
-            if (player.position.y <= 0.1) {
-                player.position.y = 0.1;
-                isJumping = false;
-                jumpVelocity = 0;
-            }
-        }
-
-        // Clamp
-        player.position.x = THREE.MathUtils.clamp(player.position.x, -12, 12);
-        player.position.z = THREE.MathUtils.clamp(player.position.z, -12, 12);
-
-        updateAnimation(delta);
-        applyProcedural(t);
+    // Añadir componentes volumétricos (obstáculos tipo Conker's)
+    // Capacitadores Cilíndricos
+    const capGeo = new THREE.CylinderGeometry(3, 3, 12, 8); // Bajos polígonos
+    const capMat = new THREE.MeshLambertMaterial({ color: '#2255cc' });
+    
+    for(let i=0; i<15; i++) {
+      const capacitor = new THREE.Mesh(capGeo, capMat);
+      capacitor.position.set(Math.random()*120 - 60, 6, Math.random()*120 - 60);
+      if (Math.abs(capacitor.position.x) < 15 && Math.abs(capacitor.position.z) < 15) {
+        capacitor.position.x += 25; // Evitar que caiga encima del spawn del jugador
+      }
+      capacitor.castShadow = true;
+      capacitor.receiveShadow = true;
+      scene.add(capacitor);
     }
 
-    updateHUD();
+    // Resistores con bandas de colores
+    const resGeo = new THREE.BoxGeometry(16, 4, 4);
+    const resMat = new THREE.MeshLambertMaterial({ color: '#d2b48c' });
+    for(let i=0; i<10; i++) {
+      const resistor = new THREE.Mesh(resGeo, resMat);
+      resor_x = Math.random()*140 - 70;
+      resor_z = Math.random()*140 - 70;
+      resistor.position.set(resor_x, 2, resor_z);
+      resistor.rotation.y = Math.random() * Math.PI;
+      resistor.castShadow = true;
+      scene.add(resistor);
+    }
+  }
+
+  /* ================= CARGA DE ASSETS (R3WORK.glb) ================= */
+  function loadPlayerModel() {
+    const loader = new THREE.GLTFLoader();
+    
+    // Intentar cargar el archivo local cargado por el usuario
+    loader.load('R3WORK.glb', 
+      function (gltf) {
+        playerModel = gltf.scene;
+        playerModel.scale.set(4, 4, 4); // Escalar al tamaño del mundo
+        playerModel.traverse((node) => {
+          if (node.isMesh) {
+            node.castShadow = true;
+            node.receiveShadow = true;
+            // Forzar material Lambert o Toon para mantener el look N64
+            if(node.material) {
+              node.material.roughness = 1.0;
+              if (node.material.map) {
+                node.material.map.magFilter = THREE.NearestFilter;
+                node.material.map.minFilter = THREE.NearestFilter;
+              }
+            }
+          }
+        });
+        
+        scene.add(playerModel);
+        
+        // Configurar animaciones si el modelo las incluye
+        if (gltf.animations && gltf.animations.length > 0) {
+          mixer = new THREE.AnimationMixer(playerModel);
+          const action = mixer.clipAction(gltf.animations[0]);
+          action.play();
+        }
+
+        // Ocultar pantalla de boot
+        document.getElementById('boot-screen').style.opacity = '0';
+        setTimeout(() => { document.getElementById('boot-screen').style.display = 'none'; }, 500);
+        document.getElementById('gameLog').innerHTML = '> R3-WORK CON GLB CARGADO CORRECTAMENTE. CORRIENDO A 240p.';
+      },
+      function (xhr) {
+        console.log((xhr.loaded / xhr.total * 100) + '% cargado');
+      },
+      function (error) {
+        console.warn('No se pudo encontrar R3WORK.glb en la raíz, generando modelo procedural low-poly para desarrollo...');
+        createProceduralN64Player();
+      }
+    );
+  }
+
+  // Respaldo de contingencia: Crea un microchip articulado en Low-Poly si el GLB no responde inmediatamente
+  function createProceduralN64Player() {
+    playerModel = new THREE.Group();
+    
+    // Cuerpo SOIC-16 (Caja plana negra)
+    const bodyGeo = new THREE.BoxGeometry(4, 1.5, 4);
+    const bodyMat = new THREE.MeshLambertMaterial({ color: '#1a1a1a' });
+    const bodyMesh = new THREE.Mesh(bodyGeo, bodyMat);
+    bodyMesh.position.y = 1.5;
+    playerModel.add(bodyMesh);
+
+    // Patas articuladas (Pines doblados)
+    const legGeo = new THREE.BoxGeometry(0.4, 2, 0.4);
+    const legMat = new THREE.MeshLambertMaterial({ color: '#cccccc' });
+
+    for(let i = 0; i < 4; i++) {
+      // Izquierda
+      const legL = new THREE.Mesh(legGeo, legMat);
+      legL.position.set(-2.2, 0.8, -1.5 + i*1.0);
+      legL.rotation.z = 0.3;
+      playerModel.add(legL);
+
+      // Derecha
+      const legR = new THREE.Mesh(legGeo, legMat);
+      legR.position.set(2.2, 0.8, -1.5 + i*1.0);
+      legR.rotation.z = -0.3;
+      playerModel.add(legR);
+    }
+
+    scene.add(playerModel);
+    
+    // Quitar pantalla de carga
+    document.getElementById('boot-screen').style.opacity = '0';
+    setTimeout(() => { document.getElementById('boot-screen').style.display = 'none'; }, 500);
+  }
+
+  /* ================= LOOP DE ANIMACIÓN Y FÍSICAS N64 ================= */
+  function animate() {
+    requestAnimationFrame(animate);
+
+    const delta = clock.getDelta();
+    const time = clock.getElapsedTime();
+
+    if (mixer) mixer.update(delta);
+
+    // Procesar Entrada de Controles (WASD / Flechas)
+    moveDirection.x = 0;
+    moveDirection.z = 0;
+
+    if (keys['KeyW'] || keys['ArrowUp']) moveDirection.z = -1;
+    if (keys['KeyS'] || keys['ArrowDown']) moveDirection.z = 1;
+    if (keys['KeyA'] || keys['ArrowLeft']) moveDirection.x = -1;
+    if (keys['KeyD'] || keys['ArrowRight']) moveDirection.x = 1;
+
+    // Actualizar posición y rotación del personaje
+    if (playerModel) {
+      if (moveDirection.x !== 0 || moveDirection.z !== 0) {
+        // Calcular ángulo de movimiento basado en la dirección
+        const targetRotation = Math.atan2(moveDirection.x, moveDirection.z);
+        
+        // Interpolación de rotación rígida estilo retro
+        playerModel.rotation.y = targetRotation;
+
+        // Mover personaje en el plano de la PCB
+        playerPhysics.x += moveDirection.x * playerPhysics.speed;
+        playerPhysics.z += moveDirection.z * playerPhysics.speed;
+
+        // Animación procedural de balanceo de patas (Bobbing) estilo Conker
+        playerModel.position.y = Math.abs(Math.sin(time * 12)) * 0.4;
+        playerModel.rotation.z = Math.sin(time * 12) * 0.08;
+      } else {
+        // Volver suavemente al suelo al estar detenido
+        playerModel.position.y = THREE.MathUtils.lerp(playerModel.position.y, 0, 0.1);
+        playerModel.rotation.z = THREE.MathUtils.lerp(playerModel.rotation.z, 0, 0.1);
+      }
+
+      // Aplicar coordenadas físicas al objeto tridimensional
+      playerModel.position.x = playerPhysics.x;
+      playerModel.position.z = playerPhysics.z;
+
+      // 8. Control de Cámara en 3ª Persona (Fija detrás con elasticidad)
+      const camOffset = new THREE.Vector3(0, 12, 18);
+      const targetCamPosition = playerModel.position.clone().add(camOffset);
+      camera.position.lerp(targetCamPosition, 0.08); // Suavizado de seguimiento de cámara
+      camera.lookAt(playerModel.position.clone().add(new THREE.Vector3(0, 2, 0)));
+    }
+
+    // Efecto de parpadeo de luces ambientales para la atmósfera industrial
+    const ambientPulse = 1.2 + Math.sin(time * 4) * 0.2;
+    scene.children.forEach(child => {
+      if(child.isPointLight) child.intensity = 2 + Math.sin(time * 15) * 1.5;
+    });
+
+    // Simular pérdida superficial de señal en el HUD de manera aleatoria
+    if (Math.random() < 0.02) {
+      const currentSignal = Math.floor(80 + Math.random() * 20);
+      document.getElementById('signal-bar').style.width = currentSignal + '%';
+    }
+
+    // Renderizar escena
     renderer.render(scene, camera);
-}
+  }
 
-addEventListener('resize', () => {
-    camera.aspect = innerWidth / innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(innerWidth, innerHeight);
-});
-
-animate();
+  // Inicializar al cargar la ventana
+  window.onload = init;
 </script>
 </body>
 </html>
