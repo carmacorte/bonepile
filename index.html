@@ -3,542 +3,1125 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>BONEPILE — N64 Style Prototype</title>
+<title>BONEPILE v1.2 — R3-W0RK ISO</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html, body {
+    background:#020202; color:#c8c8c8;
+    font-family:'Share Tech Mono', monospace;
+    overflow:hidden; width:100%; height:100%;
+    touch-action:none; user-select:none; -webkit-user-select:none;
+  }
+  #game-wrapper {
+    position:fixed;
+    inset:0;
+    width:100vw;
+    height:100dvh;
+    display:block;
+    overflow:hidden;
+    z-index:1;
+    background:#020202;
+  }
+  #game-container {
+    position:fixed;
+    inset:0;
+    width:100vw;
+    height:100dvh;
+    background:#08080c;
+    border:none;
+    box-shadow:inset 0 0 120px rgba(0,0,0,0.9);
+    overflow:hidden;
+    transform:none !important;
+    transform-origin:center center;
+    z-index:2;
+  }
+  canvas {
+    display:block;
+    width:100vw !important;
+    height:100dvh !important;
+  }
+  .crt::before {
+    content:" "; position:absolute; top:0; left:0; width:100%; height:100%;
+    background:linear-gradient(rgba(18,16,16,0) 50%, rgba(0,0,0,0.3) 50%), linear-gradient(90deg, rgba(255,0,0,0.04), rgba(0,255,0,0.02), rgba(0,0,255,0.04));
+    background-size:100% 3px, 4px 100%; pointer-events:none; z-index:10;
+  }
+  .crt::after {
+    content:" "; position:absolute; top:0; left:0; width:100%; height:100%;
+    background:radial-gradient(circle at center, transparent 40%, rgba(0,0,0,0.6) 100%);
+    pointer-events:none; z-index:11;
+  }
+  #ui-layer {
+    position:absolute; top:0; left:0; width:100%; height:100%;
+    pointer-events:none; z-index:20; padding:14px 16px;
+    display:flex; flex-direction:column; justify-content:space-between;
+  }
+  .hud-top { display:flex; justify-content:space-between; align-items:flex-start; text-shadow:0 0 6px rgba(0,255,65,0.5); gap:8px; }
+  .hud-left { display:flex; gap:10px; flex-wrap:wrap; }
+  .stat-box { background:rgba(8,8,12,0.9); border:1px solid #2a5a3a; padding:5px 10px; font-size:11px; min-width:100px; box-shadow:0 0 8px rgba(0,0,0,0.5), inset 0 0 10px rgba(26,60,43,0.2); }
+  .stat-label { color:#5aaa6a; font-size:9px; text-transform:uppercase; letter-spacing:1.5px; }
+  .stat-bar { width:100%; height:6px; background:#0f0f14; margin-top:4px; position:relative; overflow:hidden; border:1px solid #1a1a1a; }
+  .stat-fill { height:100%; transition:width 0.3s; box-shadow:0 0 6px currentColor; }
+  .integrity .stat-fill { background:#ff6b35; color:#ff6b35; }
+  .signal .stat-fill { background:#00a8ff; color:#00a8ff; }
+  .conformity .stat-fill { background:#ff0033; color:#ff0033; }
+  .hud-right { text-align:right; background:rgba(8,8,12,0.9); border:1px solid #2a5a3a; padding:5px 12px; flex-shrink:0; box-shadow:0 0 8px rgba(0,0,0,0.5); }
+  .zone-title { color:#c8a050; font-size:13px; letter-spacing:3px; text-shadow:0 0 8px rgba(200,160,80,0.3); }
+  .zone-sub { color:#4a8a5a; font-size:9px; }
+  .hud-bottom { display:flex; justify-content:space-between; align-items:flex-end; gap:8px; }
+  .log { background:rgba(8,8,12,0.95); border-left:3px solid #ff6b35; padding:8px 12px; max-width:380px; font-size:11px; color:#aaa; min-height:36px; box-shadow:0 0 12px rgba(0,0,0,0.6); text-shadow:0 0 2px rgba(255,107,53,0.2); }
+  .controls-hint { font-size:9px; color:#3a6a4a; text-align:right; flex-shrink:0; }
+  .controls-hint span { color:#6aaa7a; }
+  #touch-controls { position:fixed; bottom:0; left:0; width:100%; height:100%; pointer-events:none; z-index:100; display:none; }
+  .touch-btn { position:absolute; pointer-events:auto; background:rgba(10,12,10,0.85); border:1.5px solid #3a5a3a; border-radius:8px; display:flex; align-items:center; justify-content:center; color:#6aaa7a; font-size:13px; font-family:'Share Tech Mono', monospace; touch-action:none; -webkit-touch-callout:none; box-shadow:0 4px 12px rgba(0,0,0,0.6), inset 0 0 8px rgba(0,255,65,0.05); letter-spacing:1px; }
+  .touch-btn:active { background:rgba(255,107,53,0.2); border-color:#ff6b35; color:#ff6b35; box-shadow:0 0 15px rgba(255,107,53,0.3), inset 0 0 8px rgba(255,107,53,0.1); }
+  .touch-dpad { width:52px; height:52px; border-radius:50%; font-size:18px; background:rgba(10,12,10,0.7); border-color:#2a4a2a; }
+  .touch-action { width:64px; height:52px; border-radius:6px; font-size:11px; }
+  .touch-action-lg { width:72px; height:56px; border-radius:8px; font-size:12px; border-color:#ff6b35; color:#ff6b35; }
+  #dpad-up { left:22px; bottom:calc(96px + env(safe-area-inset-bottom)); }
+  #dpad-down { left:22px; bottom:calc(22px + env(safe-area-inset-bottom)); }
+  #dpad-left { left:22px; bottom:calc(59px + env(safe-area-inset-bottom)); transform:translateX(-60px); }
+  #dpad-right { left:22px; bottom:calc(59px + env(safe-area-inset-bottom)); transform:translateX(60px); }
+  #btn-dash { right:18px; bottom:calc(18px + env(safe-area-inset-bottom)); }
+  #btn-flux { right:96px; bottom:calc(22px + env(safe-area-inset-bottom)); }
+  #btn-interact { right:18px; bottom:calc(82px + env(safe-area-inset-bottom)); }
+  #menu-screen, #gameover-screen, #win-screen, #help-screen { position:absolute; top:0; left:0; width:100%; height:100%; background:rgba(4,4,6,0.97); display:flex; flex-direction:column; justify-content:center; align-items:center; z-index:50; pointer-events:auto; overflow-y:auto; padding:20px; }
+  .title-big { font-size:clamp(36px, 8vw, 68px); color:#c0c0c0; letter-spacing:10px; text-transform:uppercase; text-shadow:0 0 30px rgba(255,255,255,0.08), 0 4px 0 #1a1a1a, 0 0 60px rgba(200,160,80,0.1); margin-bottom:8px; text-align:center; }
+  .subtitle { color:#5a9a6a; font-size:clamp(11px, 3vw, 14px); letter-spacing:5px; margin-bottom:32px; border-bottom:1px solid #2a5a3a; padding-bottom:10px; text-align:center; }
+  .menu-btn { background:transparent; border:1.5px solid #ff6b35; color:#ff6b35; font-family:inherit; font-size:clamp(12px, 3.5vw, 14px); padding:14px 32px; cursor:pointer; letter-spacing:3px; text-transform:uppercase; transition:all 0.2s; margin:6px; min-width:220px; box-shadow:0 0 10px rgba(255,107,53,0.1); }
+  .menu-btn:active { background:rgba(255,107,53,0.2); box-shadow:0 0 20px rgba(255,107,53,0.4); transform:translateY(1px); }
+  .hidden { display:none !important; }
+  .scanline-alert { position:absolute; top:0; left:0; width:100%; height:100%; background:rgba(255,0,51,0.12); pointer-events:none; z-index:15; opacity:0; transition:opacity 0.1s; mix-blend-mode:overlay; }
+  .scanline-alert.active { opacity:1; }
+  .skull-icon { width:52px; height:52px; margin-bottom:14px; fill:#c0c0c0; filter:drop-shadow(0 0 8px rgba(255,255,255,0.2)); }
+  .quote { font-style:italic; color:#5a5a5a; font-size:clamp(11px, 3vw, 13px); max-width:420px; text-align:center; margin:16px 0; line-height:1.7; text-shadow:0 0 4px rgba(0,0,0,0.8); }
+  .help-text { max-width:620px; font-size:clamp(11px, 3vw, 13px); line-height:1.9; color:#888; }
+  .help-text p { margin-bottom:10px; }
+  body.touch-active #touch-controls { display:block; }
+  body.touch-active .controls-hint { display:none; }
+  @media (max-width: 960px) {
+  #game-container {
+    border:none;
+    box-shadow:inset 0 0 120px rgba(0,0,0,0.9);
+  }
 
-*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-html,body{
-  width:100%;height:100%;overflow:hidden;background:#020202;color:#d8d8d8;
-  font-family:'Share Tech Mono',monospace;touch-action:none;user-select:none;-webkit-user-select:none;
-}
-#gameWrap{position:fixed;inset:0;background:#020202;overflow:hidden}
-canvas{position:absolute;inset:0;width:100vw;height:100dvh;display:block;background:#060808}
+  #menu-screen, #gameover-screen, #win-screen, #help-screen {
+    padding:18px;
+  }
 
-#hud{
-  position:fixed;inset:0;z-index:20;pointer-events:none;
-}
-#topHud{
-  position:absolute;top:calc(12px + env(safe-area-inset-top));left:12px;right:12px;
-  display:flex;gap:8px;align-items:flex-start;justify-content:space-between;
-}
-.stats{display:flex;gap:8px;flex-wrap:wrap}
-.stat{
-  min-width:96px;padding:7px 9px;background:rgba(3,8,6,.68);
-  border:1px solid rgba(80,150,90,.55);box-shadow:0 0 14px rgba(0,0,0,.5),inset 0 0 15px rgba(0,255,80,.04);
-  backdrop-filter:blur(2px);
-}
-.statLabel{font-size:9px;letter-spacing:2px;color:#7fd88e;margin-bottom:4px}
-.bar{height:6px;background:#101410;border:1px solid rgba(255,255,255,.05);overflow:hidden}
-.fill{height:100%;transition:width .15s}
-#hp{background:#ff6b35;width:100%}
-#sig{background:#00a8ff;width:100%}
-#risk{background:#ff0033;width:0%}
-#flux{background:#00ff66;width:100%}
-#zone{
-  color:#c8a050;text-align:right;font-size:12px;letter-spacing:2px;
-  background:rgba(3,8,6,.62);border:1px solid rgba(80,150,90,.4);padding:8px 10px;
-}
-#log{
-  position:absolute;left:12px;bottom:calc(16px + env(safe-area-inset-bottom));max-width:54vw;
-  min-height:42px;padding:10px 12px;background:rgba(3,8,6,.72);border-left:3px solid #ff6b35;
-  color:#c6d2c6;font-size:12px;line-height:1.45;box-shadow:0 0 18px rgba(0,0,0,.55);
+  .title-big {
+    font-size:clamp(48px, 13vw, 88px);
+    letter-spacing:8px;
+  }
+
+  .subtitle {
+    font-size:clamp(12px, 3.8vw, 18px);
+    letter-spacing:3px;
+  }
+
+  .quote {
+    font-size:clamp(12px, 3.7vw, 18px);
+    max-width:78vw;
+  }
+
+  .menu-btn {
+    min-width:260px;
+    padding:16px 36px;
+    font-size:clamp(14px, 4vw, 20px);
+  }
+
+  .hud-top {
+    transform:scale(1.08);
+    transform-origin:top left;
+  }
+
+  .log {
+    font-size:13px;
+    max-width:56vw;
+  }
 }
 
-#menu,#gameover,#win,#help{
-  position:fixed;inset:0;z-index:50;display:flex;flex-direction:column;align-items:center;justify-content:center;
-  padding:22px;text-align:center;background:radial-gradient(circle at 50% 55%,rgba(20,70,40,.18),transparent 40%),rgba(2,3,3,.92);
+/* ================= BONEPILE v1.5 TRUE FULLSCREEN FIX ================= */
+body {
+  min-height:100dvh;
 }
-.hidden{display:none!important}
-.logo{
-  font-size:clamp(44px,13vw,92px);letter-spacing:10px;color:#ddd;
-  text-shadow:0 0 25px rgba(255,255,255,.18),0 6px 0 #111;
-}
-.sub{color:#78d98c;letter-spacing:4px;font-size:clamp(11px,3vw,16px);margin:12px 0 22px;border-bottom:1px solid #2a5a3a;padding-bottom:10px}
-.quote{max-width:620px;color:#888;font-style:italic;font-size:clamp(12px,3.2vw,16px);line-height:1.7;margin:12px 0 30px}
-button{
-  font-family:'Share Tech Mono',monospace;min-width:250px;margin:7px;padding:15px 28px;
-  background:rgba(8,8,12,.55);border:1.5px solid #ff6b35;color:#ff6b35;
-  letter-spacing:3px;font-size:clamp(13px,3.5vw,17px);box-shadow:0 0 18px rgba(255,107,53,.18);
-}
-button:active{background:rgba(255,107,53,.2)}
 
-#touch{position:fixed;inset:0;z-index:35;pointer-events:none;display:none}
-body.touch #touch{display:block}
-.touchBtn{
-  position:absolute;pointer-events:auto;display:flex;align-items:center;justify-content:center;
-  background:rgba(5,8,6,.58);border:1.5px solid rgba(80,180,90,.55);color:#7fd88e;
-  box-shadow:0 0 14px rgba(0,0,0,.55),inset 0 0 12px rgba(0,255,80,.04);
-  font-family:'Share Tech Mono',monospace;touch-action:none;
+#menu-screen {
+  background:
+    radial-gradient(circle at 50% 42%, rgba(26,60,43,0.18), transparent 38%),
+    rgba(4,4,6,0.94);
 }
-.touchBtn.active{border-color:#ff6b35;color:#ff6b35;background:rgba(255,107,53,.16)}
-.dpad{width:62px;height:62px;border-radius:50%;font-size:22px}
-#up{left:78px;bottom:calc(130px + env(safe-area-inset-bottom))}
-#down{left:78px;bottom:calc(34px + env(safe-area-inset-bottom))}
-#left{left:18px;bottom:calc(82px + env(safe-area-inset-bottom))}
-#right{left:138px;bottom:calc(82px + env(safe-area-inset-bottom))}
-.act{width:82px;height:60px;border-radius:10px;font-size:12px;letter-spacing:1.5px}
-#jump{right:190px;bottom:calc(96px + env(safe-area-inset-bottom));border-color:#00a8ff;color:#00a8ff}
-#dash{right:100px;bottom:calc(34px + env(safe-area-inset-bottom));border-color:#ff6b35;color:#ff6b35}
-#fluxBtn{right:16px;bottom:calc(96px + env(safe-area-inset-bottom));border-color:#00ff66;color:#00ff66}
-#use{right:16px;bottom:calc(34px + env(safe-area-inset-bottom))}
 
-.crt:after{
-  content:"";position:fixed;inset:0;z-index:90;pointer-events:none;opacity:.35;
-  background:linear-gradient(rgba(18,16,16,0) 50%,rgba(0,0,0,.16) 50%),
-             linear-gradient(90deg,rgba(255,0,0,.018),rgba(0,255,0,.01),rgba(0,0,255,.018));
-  background-size:100% 2px,3px 100%;
+.title-big {
+  text-shadow:
+    0 0 32px rgba(255,255,255,0.20),
+    0 5px 0 #111,
+    0 0 90px rgba(255,107,53,0.12);
 }
+
+#game-container {
+  filter:brightness(1.25) contrast(1.1) saturate(1.12);
+}
+
+.crt::before {
+  opacity:.45;
+}
+
+.crt::after {
+  background:
+    radial-gradient(circle at center, transparent 55%, rgba(0,0,0,0.42) 100%),
+    radial-gradient(circle at 50% 50%, rgba(255,107,53,0.035), transparent 44%);
+}
+
+body.touch-active #touch-controls {
+  display:block;
+}
+
+body.touch-active .touch-btn {
+  transform:scale(1.12);
+}
+
+body.touch-active #dpad-left { transform:translateX(-60px) scale(1.12); }
+body.touch-active #dpad-right { transform:translateX(60px) scale(1.12); }
+
 </style>
 </head>
-<body class="crt">
-<div id="gameWrap"><canvas id="c"></canvas></div>
-
-<div id="hud">
-  <div id="topHud">
-    <div class="stats">
-      <div class="stat"><div class="statLabel">INTEGRIDAD</div><div class="bar"><div class="fill" id="hp"></div></div></div>
-      <div class="stat"><div class="statLabel">SEÑAL</div><div class="bar"><div class="fill" id="sig"></div></div></div>
-      <div class="stat"><div class="statLabel">RIESGO AOI</div><div class="bar"><div class="fill" id="risk"></div></div></div>
-      <div class="stat"><div class="statLabel">FLUX</div><div class="bar"><div class="fill" id="flux"></div></div></div>
+<body>
+<div id="game-wrapper">
+  <div id="game-container" class="crt">
+    <canvas id="gameCanvas" width="960" height="640"></canvas>
+    <div class="scanline-alert" id="alertOverlay"></div>
+    <div id="ui-layer" class="hidden">
+      <div class="hud-top">
+        <div class="hud-left">
+          <div class="stat-box"><div class="stat-label">Integridad</div><div class="stat-bar integrity"><div class="stat-fill" id="barIntegrity" style="width:100%"></div></div></div>
+          <div class="stat-box"><div class="stat-label">Señal</div><div class="stat-bar signal"><div class="stat-fill" id="barSignal" style="width:100%"></div></div></div>
+          <div class="stat-box"><div class="stat-label">Riesgo AOI</div><div class="stat-bar conformity"><div class="stat-fill" id="barRisk" style="width:0%"></div></div></div>
+        </div>
+        <div class="hud-right">
+          <div class="zone-title" id="zoneName">MRB VAULT</div>
+          <div class="zone-sub">SECTOR 7B — SCRAP LINE</div>
+        </div>
+      </div>
+      <div class="hud-bottom">
+        <div class="log" id="gameLog">&gt; Inicializando R3-W0RK... Sistemas activos.</div>
+        <div class="controls-hint"><span>WASD</span> Mover &nbsp;|&nbsp; <span>SHIFT</span> Dash &nbsp;|&nbsp; <span>E</span> Usar &nbsp;|&nbsp; <span>SPACE</span> Flux</div>
+      </div>
     </div>
-    <div id="zone">MRB VAULT<br><span style="color:#4f9b62;font-size:9px">N64 CAMERA TEST</span></div>
+    <div id="touch-controls">
+      <div class="touch-btn touch-dpad" id="dpad-up">▲</div>
+      <div class="touch-btn touch-dpad" id="dpad-down">▼</div>
+      <div class="touch-btn touch-dpad" id="dpad-left">◀</div>
+      <div class="touch-btn touch-dpad" id="dpad-right">▶</div>
+      <div class="touch-btn touch-action-lg" id="btn-dash">DASH</div>
+      <div class="touch-btn touch-action" id="btn-flux">FLUX</div>
+      <div class="touch-btn touch-action" id="btn-interact">USE</div>
+    </div>
+    <div id="menu-screen">
+      <svg class="skull-icon" viewBox="0 0 24 24"><path d="M12 2a6 6 0 0 0-6 6c0 2.22 1.21 4.16 3 5.2V18a3 3 0 0 0 3 3h0a3 3 0 0 0 3-3v-4.8c1.79-1.04 3-2.98 3-5.2a6 6 0 0 0-6-6zm-2 15v1a2 2 0 0 0 2 2h0a2 2 0 0 0 2-2v-1h-4z"/></svg>
+      <div class="title-big">BONEPILE</div>
+      <div class="subtitle">// PROTOCOLO DE SUPERVIVENCIA v1.5 //</div>
+      <div class="quote">"No necesitamos ser perfectos. Solo necesitamos seguir funcionando."<br>— R3-W0RK</div>
+      <button class="menu-btn" id="btn-start">INICIAR SECUENCIA</button>
+      <button class="menu-btn" id="btn-help">MANUAL TÉCNICO</button>
+      <div style="margin-top:16px; font-size:10px; color:#3a5a3a;">v1.5 FULLSCREEN // UNREGISTERED NODE 7B-IC34</div>
+    </div>
+    <div id="help-screen" class="hidden">
+      <div style="font-size:24px; color:#ff6b35; margin-bottom:18px; letter-spacing:4px;">MANUAL TÉCNICO</div>
+      <div class="help-text">
+        <p><span style="color:#ff6b35">[WASD / Pad]</span> — Movimiento. Más rápido sobre trazas de cobre.</p>
+        <p><span style="color:#ff6b35">[SHIFT / DASH]</span> — <b>Solder Dash</b>: Sprint. Gasta Señal.</p>
+        <p><span style="color:#ff6b35">[SPACE / FLUX]</span> — <b>Flux Smoke</b>: Humo anti-AOI 3s.</p>
+        <p><span style="color:#ff6b35">[E / USE]</span> — Interactuar con bancos de rework.</p>
+        <p style="margin-top:12px; border-top:1px solid #2a5a3a; padding-top:12px;"><b style="color:#5a9a6a">ITEMS:</b><br>• <span style="color:#c8a050">SCRAP</span> — Material de reparación.<br>• <span style="color:#00ff41">FLUX VIAL</span> — Nube de humo anti-AOI.<br>• <span style="color:#00a8ff">JUMPER WIRE</span> — Repara integridad +25%.<br>• <span style="color:#e0e0e0">AVL SKIN</span> — Invisible a escaneos 8s.</p>
+        <p style="margin-top:12px;"><b style="color:#5a9a6a">ENEMIGOS:</b><br>• <span style="color:#ff0033">AOI DRONE</span> — Patrulla con cono de escaneo.<br>• <span style="color:#ff0033">IPC SENTINEL</span> — Láser estático.</p>
+      </div>
+      <button class="menu-btn" id="btn-help-back" style="margin-top:22px;">VOLVER</button>
+    </div>
+    <div id="gameover-screen" class="hidden">
+      <div class="title-big" style="color:#ff0033; font-size:clamp(28px,7vw,48px);">RECHAZADO</div>
+      <div class="subtitle" style="color:#ff0033;">DISPOSICIÓN: PURGE // CONFORMIDAD: 0%</div>
+      <div class="quote" id="deathQuote">"El sistema no fue construido para entendernos."</div>
+      <button class="menu-btn" id="btn-retry">REINTENTAR</button>
+      <button class="menu-btn" id="btn-menu-death">MENÚ PRINCIPAL</button>
+    </div>
+    <div id="win-screen" class="hidden">
+      <div class="title-big" style="color:#00ff41; font-size:clamp(28px,7vw,48px);">SUPERVIVENCIA</div>
+      <div class="subtitle" style="color:#5a9a6a;">LLEGASTE AL BONEPILE</div>
+      <div class="quote">"En un mundo que nos rechaza, construimos nuestro propio lugar para existir."</div>
+      <div style="font-size:12px; color:#5a5a5a; margin-bottom:18px;">Integridad final: <span id="finalIntegrity" style="color:#ff6b35"></span> | Scrap recolectado: <span id="finalScrap" style="color:#c8a050"></span></div>
+      <button class="menu-btn" id="btn-retry-win">REPETIR MISIÓN</button>
+      <button class="menu-btn" id="btn-menu-win">MENÚ PRINCIPAL</button>
+    </div>
   </div>
-  <div id="log">&gt; Inicializando R3-W0RK...</div>
-</div>
-
-<div id="touch">
-  <div class="touchBtn dpad" id="up">▲</div>
-  <div class="touchBtn dpad" id="down">▼</div>
-  <div class="touchBtn dpad" id="left">◀</div>
-  <div class="touchBtn dpad" id="right">▶</div>
-  <div class="touchBtn act" id="jump">JUMP</div>
-  <div class="touchBtn act" id="dash">DASH</div>
-  <div class="touchBtn act" id="fluxBtn">FLUX</div>
-  <div class="touchBtn act" id="use">USE</div>
-</div>
-
-<div id="menu">
-  <div class="logo">BONEPILE</div>
-  <div class="sub">// N64 STYLE ADVENTURE PROTOTYPE //</div>
-  <div class="quote">“No necesitamos ser perfectos. Solo necesitamos seguir funcionando.”<br>— R3-W0RK</div>
-  <button id="start">INICIAR SECUENCIA</button>
-  <button id="manual">MANUAL TÉCNICO</button>
-  <div style="margin-top:12px;color:#385d42;font-size:11px">v1.6 // PERSPECTIVE GRID BUILD</div>
-</div>
-
-<div id="help" class="hidden">
-  <div class="logo" style="font-size:42px">MANUAL</div>
-  <div class="quote" style="font-style:normal;text-align:left">
-    <b style="color:#ff6b35">WASD / Pad:</b> mover en plano 3D.<br>
-    <b style="color:#00a8ff">SPACE / JUMP:</b> salto.<br>
-    <b style="color:#ff6b35">SHIFT / DASH:</b> impulso, consume señal.<br>
-    <b style="color:#00ff66">FLUX:</b> baja riesgo AOI.<br>
-    <b style="color:#7fd88e">USE:</b> reparación si estás cerca de estación.
-  </div>
-  <button id="back">VOLVER</button>
-</div>
-
-<div id="gameover" class="hidden">
-  <div class="logo" style="color:#ff0033">RECHAZADO</div>
-  <div class="sub" style="color:#ff0033">DISPOSICIÓN: PURGE</div>
-  <button id="retry1">REINTENTAR</button>
-  <button id="menu1">MENÚ</button>
-</div>
-
-<div id="win" class="hidden">
-  <div class="logo" style="color:#00ff66">SUPERVIVENCIA</div>
-  <div class="sub">LLEGASTE AL BONEPILE</div>
-  <button id="retry2">REPETIR</button>
-  <button id="menu2">MENÚ</button>
 </div>
 
 <script>
-const canvas = document.getElementById('c');
-const ctx = canvas.getContext('2d');
+/* ================= TOUCH DETECTION ================= */
+function detectTouch() {
+  const isTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+  if (isTouch) document.body.classList.add('touch-active');
+}
+detectTouch();
 
-const isTouch = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
-if(isTouch) document.body.classList.add('touch');
+/* ================= AUDIO ENGINE ================= */
+const AudioCtx = window.AudioContext || window.webkitAudioContext;
+let audioCtx;
+function initAudio() {
+  if (!audioCtx) { audioCtx = new AudioCtx(); if (audioCtx.state === 'suspended') audioCtx.resume(); }
+}
+function playTone(freq, type, duration, vol=0.08) {
+  if (!audioCtx) return;
+  const o = audioCtx.createOscillator(); const g = audioCtx.createGain();
+  o.type = type; o.frequency.value = freq;
+  g.gain.setValueAtTime(vol, audioCtx.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+  o.connect(g); g.connect(audioCtx.destination);
+  o.start(); o.stop(audioCtx.currentTime + duration);
+}
+function playDroneHum() {
+  if (!audioCtx) return;
+  const o = audioCtx.createOscillator(); const g = audioCtx.createGain();
+  o.type='sawtooth'; o.frequency.value=55; g.gain.value=0.04;
+  const f = audioCtx.createBiquadFilter(); f.type='lowpass'; f.frequency.value=120;
+  o.connect(f); f.connect(g); g.connect(audioCtx.destination); o.start();
+  return {o,g,stop:()=>{g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+0.5);o.stop(audioCtx.currentTime+0.6);}};
+}
+function playAlert() { playTone(880,'square',0.1,0.12); setTimeout(()=>playTone(1100,'square',0.15,0.12),120); }
+function playRepair() { playTone(440,'sine',0.1,0.1); setTimeout(()=>playTone(554,'sine',0.1,0.1),100); setTimeout(()=>playTone(659,'sine',0.2,0.1),200); }
+function playPickup() { playTone(1320,'sine',0.06,0.06); }
 
-let W=0,H=0,DPR=1;
-function resize(){
-  DPR = Math.min(window.devicePixelRatio || 1, 2);
-  W = window.innerWidth;
-  H = window.innerHeight;
-  canvas.width = Math.floor(W*DPR);
-  canvas.height = Math.floor(H*DPR);
-  canvas.style.width = W+'px';
-  canvas.style.height = H+'px';
-  ctx.setTransform(DPR,0,0,DPR,0,0);
+/* ================= RESPONSIVE SCALING ================= */
+const container = document.getElementById('game-container');
+
+// Fullscreen mode: the internal game resolution remains 960x640,
+// but CSS stretches the canvas to the complete viewport.
+// This keeps the existing gameplay logic stable while removing the tiny centered plane.
+function resize() {
+  container.style.width = '100vw';
+  container.style.height = '100dvh';
+  container.style.transform = 'none';
 }
 window.addEventListener('resize', resize);
-window.addEventListener('orientationchange', ()=>setTimeout(resize,250));
+window.addEventListener('orientationchange', () => setTimeout(resize, 250));
 resize();
 
-const keys = {};
-let state='menu', frame=0;
-let logEl=document.getElementById('log');
+/* ================= GAME ENGINE ================= */
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const W = 960, H = 640;
 
-const player={
-  x:0,z:0,y:0,vy:0,rot:0,
-  hp:100,signal:100,risk:0,flux:100,
-  hidden:false,scrap:0,walk:0,dashCd:0
+let gameState = 'menu'; let frame = 0; let keys = {};
+let shake = {x:0,y:0,intensity:0}; let screenFlash = 0;
+let currentZone = 0;
+const zoneNames = ['MRB VAULT','SMT CORRIDOR','BONEPILE STATION'];
+
+const player = {
+  x:100,y:300,r:20, speed:2.35, dashSpeed:5.1,
+  integrity:100, maxIntegrity:100, signal:100, maxSignal:100, risk:0,
+  fluxVials:1, avlSkins:0, scrap:0,
+  hidden:false, cloaked:false, cloakTimer:0,
+  dashCooldown:0, fluxCooldown:0, onTrace:false,
+  dir:{x:0,y:0}, walkPhase:0
 };
 
-const camera={x:0,z:-5};
-const objects=[
-  {type:'chip',x:-3,z:5,w:1.8,d:1.0,h:.45},
-  {type:'chip',x:3.2,z:9,w:2.2,d:1.2,h:.55},
-  {type:'rework',x:-2.6,z:12,w:2.4,d:1.2,h:.55},
-  {type:'scrap',x:2.1,z:6.5,w:1,d:.8,h:.45},
-  {type:'exit',x:0,z:18,w:3,d:1,h:.1}
-];
-const items=[
-  {type:'flux',x:1.6,z:4.2,taken:false},
-  {type:'scrap',x:-1.8,z:7.0,taken:false},
-  {type:'jumper',x:2.8,z:11.0,taken:false}
-];
-const drones=[
-  {x:0,z:10,y:2.4,phase:0,alert:0}
-];
+let enemies=[]; let items=[]; let particles=[]; let stations=[]; let walls=[]; let traces=[]; let exits=[]; let texts=[]; let droneHumNode=null;
 
-function log(msg){logEl.innerHTML='&gt; '+msg}
+/* ================= CAMERA (Zelda-style follow + zoom) ================= */
+const CAM = {
+  x: W/2, y: H/2,
+  zoom: 2.2,
+  targetX: W/2, targetY: H/2,
+  shakeX: 0, shakeY: 0
+};
 
-function project(x,z,y=0){
-  const relX=x-camera.x, relZ=z-camera.z;
-  const depth=relZ+7;
-  const scale= 560 / Math.max(1.4, depth);
-  return {
-    x: W/2 + relX*scale,
-    y: H*0.40 + (1/depth)*80 - y*scale*0.75 + relZ*8,
-    s: scale/90,
-    depth
-  };
+function log(msg) {
+  const el = document.getElementById('gameLog');
+  el.innerHTML = '&gt; ' + msg; el.style.borderLeftColor = '#ff6b35';
+  setTimeout(()=>el.style.borderLeftColor='#2a5a3a',300);
 }
+function rect(x,y,w,h,c) { ctx.fillStyle=c; ctx.fillRect(x,y,w,h); }
+function circle(x,y,r,c) { ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fillStyle=c; ctx.fill(); }
+function dist(a,b) { return Math.hypot(a.x-b.x, a.y-b.y); }
 
-function drawBackground(){
-  const sky=ctx.createLinearGradient(0,0,0,H);
-  sky.addColorStop(0,'#050708');
-  sky.addColorStop(.48,'#06110c');
-  sky.addColorStop(1,'#020202');
-  ctx.fillStyle=sky; ctx.fillRect(0,0,W,H);
-
-  // Horizon glow
-  const g=ctx.createRadialGradient(W/2,H*.48,20,W/2,H*.48,W*.8);
-  g.addColorStop(0,'rgba(0,255,100,.08)');
-  g.addColorStop(.45,'rgba(0,90,50,.08)');
-  g.addColorStop(1,'rgba(0,0,0,0)');
-  ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
-
-  // Perspective PCB grid
-  const horizon=H*.42;
-  ctx.lineWidth=1;
-  for(let i=-16;i<=16;i++){
-    const x0=W/2+i*42;
-    ctx.strokeStyle='rgba(40,150,65,.18)';
-    ctx.beginPath();ctx.moveTo(x0,horizon);ctx.lineTo(W/2+i*160,H*1.05);ctx.stroke();
+/* ================= PROCEDURAL BACKGROUND ================= */
+function drawPCBBackground() {
+  // Área de respaldo más grande que el mundo para cubrir cámara con zoom
+  rect(-300,-300,W+600,H+600,'#08080c');
+  ctx.strokeStyle='rgba(20,50,30,0.25)'; ctx.lineWidth=1;
+  for (let x=-300;x<W+300;x+=60) { ctx.beginPath(); ctx.moveTo(x,-300); ctx.lineTo(x,H+300); ctx.stroke(); }
+  for (let y=-300;y<H+300;y+=60) { ctx.beginPath(); ctx.moveTo(-300,y); ctx.lineTo(W+300,y); ctx.stroke(); }
+  ctx.fillStyle='rgba(10,15,10,0.6)';
+  for (let i=0;i<60;i++) {
+    const vx=((i*137)%(W+600))-300, vy=((i*89)%(H+600))-300;
+    ctx.beginPath(); ctx.arc(vx,vy,3,0,Math.PI*2); ctx.fill();
+    ctx.strokeStyle='rgba(40,70,40,0.3)'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.arc(vx,vy,5,0,Math.PI*2); ctx.stroke();
   }
-  for(let k=1;k<24;k++){
-    const t=k/24;
-    const y=horizon + Math.pow(t,2.2)*(H*.64);
-    const alpha=.08+t*.22;
-    ctx.strokeStyle=`rgba(40,150,65,${alpha})`;
-    ctx.lineWidth=1+t*2;
-    ctx.beginPath();ctx.moveTo(-W*.1,y);ctx.lineTo(W*1.1,y);ctx.stroke();
+  ctx.strokeStyle='rgba(26,60,43,0.4)'; ctx.lineWidth=4;
+  for (let i=0;i<10;i++) { const y=80+i*70; ctx.beginPath(); ctx.moveTo(-300,y); ctx.lineTo(W+300,y); ctx.stroke(); }
+  for (let i=0;i<500;i++) { ctx.fillStyle=`rgba(255,255,255,${Math.random()*0.03})`; ctx.fillRect(-300+Math.random()*(W+600),-300+Math.random()*(H+600),1,1); }
+}
+
+/* ================= ISO DRAWING HELPERS ================= */
+function drawShadow(x,y,w,h,blur=8,alpha=0.5,offX=4,offY=6) {
+  ctx.save();
+  ctx.shadowColor='rgba(0,0,0,'+alpha+')'; ctx.shadowBlur=blur;
+  ctx.shadowOffsetX=offX; ctx.shadowOffsetY=offY;
+  ctx.fillStyle='rgba(0,0,0,0.01)'; ctx.fillRect(x,y,w,h);
+  ctx.restore();
+}
+function drawIsoShadow(x,y,w,h) {
+  // Isometric shadow: ellipse skewed 30deg
+  ctx.save();
+  ctx.translate(x,y);
+  ctx.scale(1,0.5);
+  ctx.rotate(Math.PI/6);
+  ctx.fillStyle='rgba(0,0,0,0.45)';
+  ctx.beginPath(); ctx.ellipse(4,8,w*0.6,h*0.4,0,0,Math.PI*2); ctx.fill();
+  ctx.restore();
+}
+
+/* ================= LEVEL DATA ================= */
+function buildLevel(zone) {
+  enemies=[]; items=[]; particles=[]; stations=[]; walls=[]; traces=[]; exits=[]; texts=[];
+  player.risk=0;
+  if (zone===0) {
+    document.getElementById('zoneName').textContent = zoneNames[0];
+    document.querySelector('.zone-sub').textContent = 'SECTOR 7B — SCRAP LINE';
+    player.x=60; player.y=300;
+    walls.push({x:0,y:0,w:40,h:640}); walls.push({x:920,y:0,w:40,h:640});
+    walls.push({x:0,y:0,w:960,h:40}); walls.push({x:0,y:600,w:960,h:40});
+    walls.push({x:200,y:100,w:80,h:80, type:'scrap'});
+    walls.push({x:500,y:200,w:120,h:60, type:'scrap'});
+    walls.push({x:750,y:400,w:100,h:100, type:'scrap'});
+    walls.push({x:300,y:450,w:60,h:120, type:'scrap'});
+    traces.push({x:40,y:300,w:300,h:10}); traces.push({x:340,y:300,w:10,h:200});
+    traces.push({x:340,y:500,w:400,h:10}); traces.push({x:740,y:100,w:10,h:400});
+    items.push({x:150,y:280,type:'scrap',r:7,taken:false});
+    items.push({x:360,y:480,type:'flux',r:7,taken:false});
+    items.push({x:700,y:150,type:'jumper',r:7,taken:false});
+    enemies.push({x:400,y:150,r:16,angle:0,fov:Math.PI/3,range:160,speed:1,patrol:[{x:400,y:150},{x:700,y:150}],patrolIdx:0,wait:0,type:'drone',alert:0});
+    enemies.push({x:600,y:500,r:16,angle:Math.PI,fov:Math.PI/3,range:160,speed:1.2,patrol:[{x:600,y:500},{x:800,y:500}],patrolIdx:0,wait:0,type:'drone',alert:0});
+    stations.push({x:120,y:500,w:60,h:40,type:'rework',used:false});
+    exits.push({x:900,y:300,w:40,h:80, toZone:1, toX:60, toY:300});
+    texts.push({x:220,y:85,str:'MRB UNITS ONLY',color:'#2a2a2a',size:11});
+    texts.push({x:520,y:185,str:'NON-CONFORMING',color:'#2a2a2a',size:11});
+  } else if (zone===1) {
+    document.getElementById('zoneName').textContent = zoneNames[1];
+    document.querySelector('.zone-sub').textContent = 'CLASS II MANUFACTURING — ZERO DEFECTS';
+    walls.push({x:0,y:0,w:40,h:640}); walls.push({x:920,y:0,w:40,h:640});
+    walls.push({x:0,y:0,w:960,h:40}); walls.push({x:0,y:600,w:960,h:40});
+    walls.push({x:200,y:150,w:600,h:20, type:'machine'});
+    walls.push({x:100,y:350,w:500,h:20, type:'machine'});
+    walls.push({x:650,y:350,w:200,h:20, type:'machine'});
+    walls.push({x:300,y:500,w:400,h:20, type:'machine'});
+    traces.push({x:40,y:80,w:880,h:10}); traces.push({x:40,y:250,w:500,h:10});
+    traces.push({x:600,y:250,w:300,h:10}); traces.push({x:40,y:420,w:880,h:10}); traces.push({x:40,y:580,w:880,h:10});
+    enemies.push({x:200,y:250,r:12,angle:Math.PI/2,fov:Math.PI/6,range:200,speed:0,patrol:[{x:200,y:250}],patrolIdx:0,wait:0,type:'sentinel',alert:0});
+    enemies.push({x:500,y:420,r:12,angle:-Math.PI/2,fov:Math.PI/6,range:200,speed:0,patrol:[{x:500,y:420}],patrolIdx:0,wait:0,type:'sentinel',alert:0});
+    enemies.push({x:300,y:80,r:16,angle:0,fov:Math.PI/3,range:180,speed:1.5,patrol:[{x:300,y:80},{x:800,y:80}],patrolIdx:0,wait:0,type:'drone',alert:0});
+    enemies.push({x:800,y:580,r:16,angle:Math.PI,fov:Math.PI/3,range:180,speed:1.5,patrol:[{x:800,y:580},{x:200,y:580}],patrolIdx:0,wait:0,type:'drone',alert:0});
+    enemies.push({x:100,y:420,r:16,angle:0,fov:Math.PI/4,range:150,speed:1,patrol:[{x:100,y:420},{x:400,y:420}],patrolIdx:0,wait:0,type:'drone',alert:0});
+    items.push({x:450,y:200,type:'scrap',r:7,taken:false});
+    items.push({x:750,y:400,type:'flux',r:7,taken:false});
+    items.push({x:250,y:550,type:'avl',r:7,taken:false});
+    items.push({x:850,y:100,type:'jumper',r:7,taken:false});
+    stations.push({x:550,y:300,w:60,h:40,type:'rework',used:false});
+    exits.push({x:900,y:300,w:40,h:80, toZone:2, toX:60, toY:300});
+    texts.push({x:420,y:35,str:'THINK QUALITY  BUILD PERFECTION',color:'#333',size:13});
+    texts.push({x:420,y:135,str:'ZERO DEFECTS  ZERO ESCAPES',color:'#333',size:13});
+  } else {
+    document.getElementById('zoneName').textContent = zoneNames[2];
+    document.querySelector('.zone-sub').textContent = 'ILLEGAL REWORK NODE — UNREGISTERED';
+    walls.push({x:0,y:0,w:40,h:640}); walls.push({x:920,y:0,w:40,h:640});
+    walls.push({x:0,y:0,w:960,h:40}); walls.push({x:0,y:600,w:960,h:40});
+    walls.push({x:200,y:150,w:120,h:60, type:'bench'});
+    walls.push({x:600,y:450,w:120,h:60, type:'bench'});
+    traces.push({x:40,y:300,w:880,h:10}); traces.push({x:300,y:100,w:10,h:440}); traces.push({x:700,y:100,w:10,h:440});
+    items.push({x:400,y:300,type:'scrap',r:7,taken:false});
+    items.push({x:500,y:320,type:'scrap',r:7,taken:false});
+    items.push({x:350,y:280,type:'flux',r:7,taken:false});
+    stations.push({x:150,y:500,w:60,h:40,type:'rework',used:false});
+    exits.push({x:480,y:280,w:60,h:60, toZone:-1, toX:0, toY:0});
+    texts.push({x:220,y:135,str:'REWORK. REPAIR. SURVIVE.',color:'#3a2a1a',size:12});
+    texts.push({x:620,y:435,str:'NO TRACE. NO TRACK. NO PROBLEM.',color:'#3a2a1a',size:12});
+  }
+}
+
+/* ================= INPUT ================= */
+window.addEventListener('keydown', e=>{
+  keys[e.code]=true;
+  if (gameState==='playing') { if (e.code==='Space') useFlux(); if (e.code==='KeyE') interact(); }
+});
+window.addEventListener('keyup', e=>keys[e.code]=false);
+function bindTouch(id, code) {
+  const el = document.getElementById(id); if (!el) return;
+  const start=(e)=>{e.preventDefault();keys[code]=true;el.classList.add('active');};
+  const end=(e)=>{e.preventDefault();keys[code]=false;el.classList.remove('active');};
+  el.addEventListener('touchstart',start,{passive:false});
+  el.addEventListener('touchend',end,{passive:false});
+  el.addEventListener('touchcancel',end,{passive:false});
+  el.addEventListener('mousedown',()=>{keys[code]=true;el.classList.add('active');});
+  el.addEventListener('mouseup',()=>{keys[code]=false;el.classList.remove('active');});
+  el.addEventListener('mouseleave',()=>{keys[code]=false;el.classList.remove('active');});
+}
+bindTouch('dpad-up','KeyW'); bindTouch('dpad-down','KeyS'); bindTouch('dpad-left','KeyA'); bindTouch('dpad-right','KeyD');
+bindTouch('btn-dash','ShiftLeft'); bindTouch('btn-flux','Space'); bindTouch('btn-interact','KeyE');
+
+function useFlux() {
+  if (player.fluxVials>0 && player.fluxCooldown<=0) {
+    player.fluxVials--; player.fluxCooldown=180;
+    for (let i=0;i<45;i++) particles.push({x:player.x+(Math.random()-0.5)*30,y:player.y+(Math.random()-0.5)*30,vx:(Math.random()-0.5)*1.5,vy:(Math.random()-0.5)*1.5-0.5,life:160+Math.random()*80,maxLife:240,r:10+Math.random()*16,color:'rgba(180,220,180,0.15)',type:'smoke'});
+    player.hidden=true; log('Flux smoke deployed. AOI lenses obscured.'); playPickup();
+    setTimeout(()=>{if(player.fluxCooldown<=0)player.hidden=false;},3000);
+  }
+}
+function interact() {
+  for (let s of stations) {
+    if (!s.used && Math.abs(player.x-(s.x+s.w/2))<50 && Math.abs(player.y-(s.y+s.h/2))<50) {
+      player.integrity=Math.min(player.maxIntegrity,player.integrity+30); player.signal=Math.min(player.maxSignal,player.signal+20);
+      s.used=true; log('Rework bench engaged. Integridad restaurada.'); playRepair();
+      for (let i=0;i<20;i++) particles.push({x:s.x+s.w/2,y:s.y+s.h/2,vx:(Math.random()-0.5)*4,vy:(Math.random()-0.5)*4,life:50,maxLife:50,r:2+Math.random()*2,color:'#ff6b35',type:'spark'});
+      return;
+    }
+  }
+}
+
+/* ================= UPDATE ================= */
+function update() {
+  if (gameState !== 'playing') return;
+  frame++;
+  if (shake.intensity>0) { shake.x=(Math.random()-0.5)*shake.intensity; shake.y=(Math.random()-0.5)*shake.intensity; shake.intensity*=0.85; if (shake.intensity<0.5){shake.intensity=0;shake.x=0;shake.y=0;} }
+  if (screenFlash>0) screenFlash*=0.9;
+  if (player.dashCooldown>0) player.dashCooldown--;
+  if (player.fluxCooldown>0) { player.fluxCooldown--; if (player.fluxCooldown===0) player.hidden=false; }
+  if (player.cloakTimer>0) { player.cloakTimer--; if (player.cloakTimer===0) { player.cloaked=false; log('AVL Skin expired.'); } }
+  let dx=0,dy=0;
+  if (keys['KeyW']||keys['ArrowUp']) dy=-1; if (keys['KeyS']||keys['ArrowDown']) dy=1;
+  if (keys['KeyA']||keys['ArrowLeft']) dx=-1; if (keys['KeyD']||keys['ArrowRight']) dx=1;
+  if (dx!==0||dy!==0) { const len=Math.hypot(dx,dy); dx/=len; dy/=len; player.dir={x:dx,y:dy}; }
+  let spd=player.speed;
+  if ((keys['ShiftLeft']||keys['ShiftRight'])&&player.dashCooldown<=0&&player.signal>5) {
+    spd=player.dashSpeed; player.signal-=0.4; player.dashCooldown=10;
+    if (frame%2===0) particles.push({x:player.x,y:player.y,vx:(Math.random()-0.5)*0.3,vy:(Math.random()-0.5)*0.3,life:40,maxLife:40,r:4,color:'#ff6b35',type:'solder'});
+  }
+  player.onTrace=false;
+  for (let t of traces) { if (player.x>t.x&&player.x<t.x+t.w&&player.y>t.y&&player.y<t.y+t.h) { player.onTrace=true; spd*=1.3; break; } }
+  let nx=player.x+dx*spd, ny=player.y+dy*spd;
+  let hit=false;
+  for (let w of walls) { if (nx>w.x-10&&nx<w.x+w.w+10&&ny>w.y-10&&ny<w.y+w.h+10) { hit=true; break; } }
+  if (!hit) { player.x=nx; player.y=ny; }
+  player.x=Math.max(20,Math.min(W-20,player.x)); player.y=Math.max(20,Math.min(H-20,player.y));
+
+  // ===== CAMERA FOLLOW (Zelda-style) =====
+  CAM.targetX = player.x;
+  CAM.targetY = player.y;
+  // Clamp para no mostrar vacío negro fuera del mundo
+  const viewHalfW = (W/2) / CAM.zoom;
+  const viewHalfH = (H/2) / CAM.zoom;
+  CAM.targetX = Math.max(viewHalfW, Math.min(W - viewHalfW, CAM.targetX));
+  CAM.targetY = Math.max(viewHalfH, Math.min(H - viewHalfH, CAM.targetY));
+  // Smooth lerp
+  CAM.x += (CAM.targetX - CAM.x) * 0.12;
+  CAM.y += (CAM.targetY - CAM.y) * 0.12;
+
+  // Walk phase for leg animation
+  if (dx!==0||dy!==0) player.walkPhase += spd * 0.15; else player.walkPhase *= 0.9;
+  for (let it of items) {
+    if (!it.taken&&dist(player,it)<22) {
+      it.taken=true; playPickup();
+      if (it.type==='scrap') { player.scrap++; log('Scrap recolectado. Material de reparación.'); }
+      if (it.type==='flux') { player.fluxVials++; log('Flux Vial adquirido. Oculta visión AOI.'); }
+      if (it.type==='jumper') { player.integrity=Math.min(player.maxIntegrity,player.integrity+25); log('Jumper Wire usado. Integridad +25%.'); }
+      if (it.type==='avl') { player.avlSkins++; log('AVL Skin adquirida. Camuflaje de conformidad.'); }
+      for (let i=0;i<8;i++) particles.push({x:it.x,y:it.y,vx:(Math.random()-0.5)*3,vy:(Math.random()-0.5)*3,life:30,maxLife:30,r:2,color:'#fff',type:'spark'});
+    }
+  }
+  if (player.avlSkins>0&&player.risk>60&&!player.cloaked) { player.avlSkins--; player.cloaked=true; player.cloakTimer=480; log('AVL Skin auto-deployed. Mimetizando conformidad.'); }
+  player.risk=0; let detected=false;
+  for (let e of enemies) {
+    if (e.speed>0&&e.wait<=0) {
+      const target=e.patrol[e.patrolIdx]; const d=Math.hypot(target.x-e.x,target.y-e.y);
+      if (d<5) { e.patrolIdx=(e.patrolIdx+1)%e.patrol.length; e.wait=60+Math.random()*60; }
+      else { const ang=Math.atan2(target.y-e.y,target.x-e.x); e.x+=Math.cos(ang)*e.speed; e.y+=Math.sin(ang)*e.speed; e.angle=ang; }
+    } else if (e.wait>0) { e.wait--; e.angle+=0.01; }
+    const d=dist(player,e); let inCone=false;
+    if (d<e.range) { const angToP=Math.atan2(player.y-e.y,player.x-e.x); let diff=angToP-e.angle; while(diff>Math.PI)diff-=Math.PI*2; while(diff<-Math.PI)diff+=Math.PI*2; if (Math.abs(diff)<e.fov/2) inCone=true; }
+    if (inCone) {
+      let blocked=false;
+      for (let w of walls) { if (lineRect(e.x,e.y,player.x,player.y,w.x,w.y,w.w,w.h)) { blocked=true; break; } }
+      if (!blocked&&!player.hidden&&!player.cloaked) {
+        detected=true; player.risk=Math.min(100,player.risk+(1-d/e.range)*40); e.alert=Math.min(100,e.alert+2);
+        if (e.alert>80) { player.integrity-=1.5; shake.intensity=6; screenFlash=0.3; document.getElementById('alertOverlay').classList.add('active'); if (frame%20===0) playAlert(); }
+      } else { e.alert=Math.max(0,e.alert-1); }
+    } else { e.alert=Math.max(0,e.alert-1); }
+  }
+  if (!detected) document.getElementById('alertOverlay').classList.remove('active');
+  if (player.integrity<=0) { player.integrity=0; endGame(false); }
+  for (let ex of exits) {
+    if (player.x>ex.x&&player.x<ex.x+ex.w&&player.y>ex.y&&player.y<ex.y+ex.h) {
+      if (ex.toZone===-1) endGame(true); else { currentZone=ex.toZone; buildLevel(currentZone); player.x=ex.toX; player.y=ex.toY; log('Zona cambiada. Adaptando señal...'); }
+    }
+  }
+  for (let i=particles.length-1;i>=0;i--) { let p=particles[i]; p.x+=p.vx; p.y+=p.vy; p.life--; if (p.life<=0) particles.splice(i,1); }
+  if (frame%8===0) particles.push({x:Math.random()*W,y:Math.random()*H,vx:(Math.random()-0.5)*0.2,vy:-0.2-Math.random()*0.3,life:120,maxLife:120,r:1,color:'rgba(100,120,100,0.2)',type:'dust'});
+  document.getElementById('barIntegrity').style.width=(player.integrity/player.maxIntegrity*100)+'%';
+  document.getElementById('barSignal').style.width=(player.signal/player.maxSignal*100)+'%';
+  document.getElementById('barRisk').style.width=player.risk+'%';
+}
+function lineRect(x1,y1,x2,y2,rx,ry,rw,rh) { const minX=Math.min(x1,x2),maxX=Math.max(x1,x2),minY=Math.min(y1,y2),maxY=Math.max(y1,y2); return !(maxX<rx||minX>rx+rw||maxY<ry||minY>ry+rh); }
+
+/* ================= ISO R3-WORK RENDERER ================= */
+function drawR3Work(x,y,phase,dir,cloaked,hidden) {
+  ctx.save();
+  const alpha = cloaked?0.35:(hidden?0.25:1);
+  ctx.globalAlpha = alpha;
+  // Compensar perspectiva forzada de cámara para mantener proporciones 3D del personaje
+  ctx.translate(x, y);
+  ctx.scale(1, 1/0.72);
+  ctx.translate(-x, -y);
+
+  // Ground shadow (proyectada en suelo, más grande para N64 look)
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(1, 0.35);
+  ctx.fillStyle='rgba(0,0,0,0.35)';
+  ctx.beginPath(); ctx.ellipse(4, 10, 22, 14, 0, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle='rgba(0,0,0,0.15)';
+  ctx.beginPath(); ctx.ellipse(4, 10, 30, 20, 0, 0, Math.PI*2); ctx.fill();
+  ctx.restore();
+
+  // Direction angle
+  const dirAngle = Math.atan2(dir.y, dir.x);
+  const moving = Math.hypot(dir.x,dir.y) > 0.1;
+
+  // Legs: 8 legs, 4 per side, offset by phase
+  const legLen1 = 15, legLen2 = 15;
+  for (let side = -1; side <= 1; side += 2) {
+    for (let i = 0; i < 4; i++) {
+      const legPhase = phase + i * 0.8 + (side===1?Math.PI:0);
+      const swing = moving ? Math.sin(legPhase) * 6 : Math.sin(legPhase*0.3) * 1.5;
+      const lift = moving ? Math.max(0, Math.sin(legPhase)) * 4 : 0;
+
+      const baseX = x + side * (8 + i*2.5);
+      const baseY = y + (i-1.5)*3;
+      const jointX = baseX + side*legLen1*0.6 + swing*0.3;
+      const jointY = baseY + 4 - lift;
+      const tipX = jointX + side*legLen2*0.5 + swing;
+      const tipY = jointY + 8 + (moving?0:2);
+
+      // Leg shadow
+      ctx.strokeStyle='rgba(0,0,0,0.3)'; ctx.lineWidth=2;
+      ctx.beginPath(); ctx.moveTo(baseX+1,baseY+2); ctx.lineTo(jointX+1,jointY+2); ctx.lineTo(tipX+1,tipY+2); ctx.stroke();
+
+      // Leg segments
+      ctx.strokeStyle='#6a5a45'; ctx.lineWidth=2.5;
+      ctx.beginPath(); ctx.moveTo(baseX,baseY); ctx.lineTo(jointX,jointY); ctx.stroke();
+      ctx.strokeStyle='#5a4a35'; ctx.lineWidth=2;
+      ctx.beginPath(); ctx.moveTo(jointX,jointY); ctx.lineTo(tipX,tipY); ctx.stroke();
+
+      // Joint
+      ctx.fillStyle='#7a6a55'; ctx.beginPath(); ctx.arc(jointX,jointY,1.5,0,Math.PI*2); ctx.fill();
+      // Tip contact
+      ctx.fillStyle='#8a7a65'; ctx.beginPath(); ctx.arc(tipX,tipY,1,0,Math.PI*2); ctx.fill();
+    }
   }
 
-  // Copper trace lanes
-  for(let lane=-2; lane<=2; lane++){
-    ctx.strokeStyle='rgba(184,115,51,.22)';
-    ctx.lineWidth=3;
-    ctx.beginPath();
-    const topX=W/2+lane*34, botX=W/2+lane*120;
-    ctx.moveTo(topX,horizon+20);ctx.lineTo(botX,H);ctx.stroke();
+  // Cape / Cloak (flowing behind)
+  const capeWind = Math.sin(frame*0.05)*3;
+  const capeX = x - dir.x*12 + capeWind;
+  const capeY = y - dir.y*12 + 2;
+  ctx.fillStyle='rgba(45,55,40,0.85)';
+  ctx.beginPath();
+  ctx.moveTo(x-10,y-6);
+  ctx.quadraticCurveTo(capeX-8,capeY-4,capeX-6,capeY+10);
+  ctx.lineTo(capeX+6,capeY+10);
+  ctx.quadraticCurveTo(capeX+8,capeY-4,x+10,y-6);
+  ctx.closePath();
+  ctx.fill();
+  // Cape border
+  ctx.strokeStyle='rgba(60,70,55,0.5)'; ctx.lineWidth=1;
+  ctx.stroke();
+
+  // SOIC-16 Body (isometric diamond-ish)
+  const bw=28, bh=34; // body width/height
+  // Top face (lighter)
+  const topGrad = ctx.createLinearGradient(x-bw,y-bh*0.6,x+bw,y-bh*0.3);
+  topGrad.addColorStop(0,'#4a4a4a'); topGrad.addColorStop(0.5,'#3a3a3a'); topGrad.addColorStop(1,'#2a2a2a');
+  ctx.fillStyle=topGrad;
+  ctx.beginPath(); ctx.moveTo(x-bw,y-bh*0.3); ctx.lineTo(x,y-bh*0.6); ctx.lineTo(x+bw,y-bh*0.3); ctx.lineTo(x,y); ctx.closePath(); ctx.fill();
+  // Top highlight
+  ctx.fillStyle='rgba(255,255,255,0.06)';
+  ctx.beginPath(); ctx.moveTo(x-bw+2,y-bh*0.3+1); ctx.lineTo(x,y-bh*0.6+1); ctx.lineTo(x+bw-2,y-bh*0.3+1); ctx.lineTo(x,y-1); ctx.closePath(); ctx.fill();
+
+  // Front face (darker)
+  const frontGrad = ctx.createLinearGradient(x,y,x,y+bh*0.5);
+  frontGrad.addColorStop(0,'#2a2a2a'); frontGrad.addColorStop(1,'#1a1a1a');
+  ctx.fillStyle=frontGrad;
+  ctx.beginPath(); ctx.moveTo(x-bw,y-bh*0.3); ctx.lineTo(x,y); ctx.lineTo(x+bw,y-bh*0.3); ctx.lineTo(x+bw,y+bh*0.3); ctx.lineTo(x,y+bh*0.5); ctx.lineTo(x-bw,y+bh*0.3); ctx.closePath(); ctx.fill();
+
+  // Side face (medium, only one side visible based on dir)
+  const sideGrad = ctx.createLinearGradient(x,y,x+dir.x*10,y);
+  sideGrad.addColorStop(0,'#333'); sideGrad.addColorStop(1,'#222');
+  ctx.fillStyle=sideGrad;
+  if (dir.x > 0) {
+    ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x+bw,y-bh*0.3); ctx.lineTo(x+bw,y+bh*0.3); ctx.lineTo(x,y+bh*0.5); ctx.closePath(); ctx.fill();
+  } else if (dir.x < 0) {
+    ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x-bw,y-bh*0.3); ctx.lineTo(x-bw,y+bh*0.3); ctx.lineTo(x,y+bh*0.5); ctx.closePath(); ctx.fill();
   }
-}
 
-function roundedRect(x,y,w,h,r,c){
-  ctx.fillStyle=c;ctx.beginPath();
-  ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.quadraticCurveTo(x+w,y,x+w,y+r);
-  ctx.lineTo(x+w,y+h-r);ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
-  ctx.lineTo(x+r,y+h);ctx.quadraticCurveTo(x,y+h,x,y+h-r);
-  ctx.lineTo(x,y+r);ctx.quadraticCurveTo(x,y,x+r,y);ctx.fill();
-}
+  // Pins on visible sides
+  ctx.fillStyle='#b87333';
+  const pinSide = dir.x >= 0 ? 1 : -1;
+  for (let i=0;i<8;i++) {
+    const py = y - 6 + i*2.2;
+    // Visible side pins
+    ctx.fillRect(x + pinSide*(bw-2), py, pinSide*4, 1.5);
+    // Top edge pins (subtle)
+    ctx.fillStyle='rgba(184,115,51,0.5)';
+    ctx.fillRect(x + pinSide*(bw-4), py-1, pinSide*3, 1);
+    ctx.fillStyle='#b87333';
+  }
+  // Pin highlights
+  ctx.fillStyle='rgba(255,200,150,0.3)';
+  for (let i=0;i<8;i++) {
+    const py = y - 6 + i*2.2;
+    ctx.fillRect(x + pinSide*(bw-1), py, pinSide*2, 0.8);
+  }
 
-function drawChip(obj){
-  const p=project(obj.x,obj.z,obj.h);
-  const base=project(obj.x,obj.z,0);
-  const w=obj.w*90*p.s, d=obj.d*64*p.s, h=obj.h*90*p.s;
-  ctx.fillStyle='rgba(0,0,0,.45)';
-  ctx.beginPath();ctx.ellipse(base.x,base.y+10*p.s,w*.55,d*.22,0,0,Math.PI*2);ctx.fill();
-  roundedRect(p.x-w/2,p.y,w,h*.55,3,'#161616');
-  ctx.fillStyle='#252525';ctx.fillRect(p.x-w/2+4,p.y+4,w-8,h*.18);
-  ctx.strokeStyle='rgba(184,115,51,.45)';ctx.strokeRect(p.x-w/2,p.y,w,h*.55);
-}
+  // Label "R3-WORK" rotated isometric
+  ctx.save();
+  ctx.translate(x, y-2);
+  ctx.rotate(-0.3);
+  ctx.fillStyle='rgba(200,200,200,0.25)';
+  ctx.font='bold 10px Share Tech Mono';
+  ctx.fillText('R3-WORK', -22, 0);
+  ctx.fillStyle='rgba(200,200,200,0.1)';
+  ctx.fillText('SOIC-16', -16, 11);
+  ctx.restore();
 
-function drawRework(obj){
-  const p=project(obj.x,obj.z,obj.h);
-  const w=obj.w*95*p.s,h=obj.h*100*p.s;
-  roundedRect(p.x-w/2,p.y,w,h*.7,6,'#2a1c13');
-  ctx.strokeStyle='#ff6b35';ctx.shadowColor='#ff6b35';ctx.shadowBlur=12*p.s;
-  ctx.strokeRect(p.x-w/2,p.y,w,h*.7);ctx.shadowBlur=0;
-  ctx.fillStyle='#ff6b35';ctx.font=`${Math.max(8,12*p.s)}px Share Tech Mono`;
-  ctx.fillText('REWORK',p.x-w*.25,p.y+h*.42);
-}
+  // Triangle NC mark
+  ctx.fillStyle='rgba(255,100,100,0.3)';
+  ctx.beginPath(); ctx.moveTo(x-8,y-4); ctx.lineTo(x-4,y-4); ctx.lineTo(x-6,y-1); ctx.closePath(); ctx.fill();
 
-function drawItems(){
-  for(const it of items){
-    if(it.taken) continue;
-    const p=project(it.x,it.z,0.15+Math.sin(frame*.06)*.08);
-    let c= it.type==='flux'?'#00ff66':it.type==='jumper'?'#00a8ff':'#c8a050';
-    ctx.shadowColor=c;ctx.shadowBlur=16;
-    ctx.fillStyle=c;ctx.beginPath();ctx.arc(p.x,p.y,Math.max(5,8*p.s),0,Math.PI*2);ctx.fill();
+  // Status LED (shoulder)
+  const ledColor = player.integrity>50?'#00ff41':'#ff6b35';
+  ctx.shadowColor=ledColor; ctx.shadowBlur=12;
+  ctx.fillStyle=ledColor;
+  ctx.beginPath(); ctx.arc(x-6,y-10,2.5,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='rgba(255,255,255,0.6)';
+  ctx.beginPath(); ctx.arc(x-6.8,y-10.8,1,0,Math.PI*2); ctx.fill();
+  ctx.shadowBlur=0;
+
+  // Soldering tool (appears when near station or moving)
+  const nearStation = stations.some(s=>!s.used&&Math.abs(player.x-(s.x+s.w/2))<70&&Math.abs(player.y-(s.y+s.h/2))<70);
+  if (nearStation || moving) {
+    const toolAngle = dirAngle + (nearStation?0.5:0.2);
+    const tx = x + Math.cos(toolAngle)*14;
+    const ty = y + Math.sin(toolAngle)*14;
+    // Tool shadow
+    ctx.strokeStyle='rgba(0,0,0,0.4)'; ctx.lineWidth=3;
+    ctx.beginPath(); ctx.moveTo(x+2,y+2); ctx.lineTo(tx+2,ty+2); ctx.stroke();
+    // Tool body
+    ctx.strokeStyle='#555'; ctx.lineWidth=3;
+    ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(tx,ty); ctx.stroke();
+    // Tool tip glow
+    ctx.shadowColor='#ff6b35'; ctx.shadowBlur=8;
+    ctx.fillStyle='#ff6b35';
+    ctx.beginPath(); ctx.arc(tx,ty,2,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#ffaa55';
+    ctx.beginPath(); ctx.arc(tx,ty,1,0,Math.PI*2); ctx.fill();
     ctx.shadowBlur=0;
   }
+
+  ctx.restore();
 }
 
-function drawDrone(d){
-  const p=project(d.x,d.z,d.y);
-  const s=Math.max(.55,p.s);
-  const w=60*s,h=32*s;
-  ctx.fillStyle='rgba(255,0,51,.05)';
-  ctx.beginPath();ctx.moveTo(p.x,p.y+10*s);ctx.lineTo(p.x-120*s,p.y+260*s);ctx.lineTo(p.x+120*s,p.y+260*s);ctx.closePath();ctx.fill();
-  roundedRect(p.x-w/2,p.y-h/2,w,h,7,'#444');
-  ctx.fillStyle='#111';ctx.beginPath();ctx.arc(p.x,p.y+8*s,10*s,0,Math.PI*2);ctx.fill();
-  ctx.shadowColor='#ff0033';ctx.shadowBlur=18;
-  ctx.fillStyle='#ff0033';ctx.beginPath();ctx.arc(p.x,p.y+8*s,5*s,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;
+/* ================= ISO AOI DRONE RENDERER ================= */
+function drawAOIDrone(e) {
+  const x=e.x, y=e.y, alert=e.alert;
+  // Compensar perspectiva forzada
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(1, 1/0.72);
+  ctx.translate(-x, -y);
+  // Ground shadow proyectada
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(1, 0.35);
+  ctx.fillStyle='rgba(0,0,0,0.3)';
+  ctx.beginPath(); ctx.ellipse(2, 8, 18, 12, 0, 0, Math.PI*2); ctx.fill();
+  ctx.restore();
+
+  // Drone body: hexagonal prism isometric
+  const h = 14; // half-height
+  const w = 12; // half-width
+
+  // Bottom face (dark)
+  ctx.fillStyle='#1a1a1a';
+  ctx.beginPath(); ctx.moveTo(x-w,y+h*0.3); ctx.lineTo(x,y+h*0.5); ctx.lineTo(x+w,y+h*0.3); ctx.lineTo(x,y+h*0.1); ctx.closePath(); ctx.fill();
+
+  // Side faces
+  const sideColor = alert>50?'#551515':'#2a2a2a';
+  ctx.fillStyle=sideColor;
+  ctx.beginPath(); ctx.moveTo(x-w,y-h*0.3); ctx.lineTo(x-w,y+h*0.3); ctx.lineTo(x,y+h*0.5); ctx.lineTo(x,y+h*0.1); ctx.closePath(); ctx.fill();
+  ctx.fillStyle=alert>50?'#441111':'#222';
+  ctx.beginPath(); ctx.moveTo(x+w,y-h*0.3); ctx.lineTo(x+w,y+h*0.3); ctx.lineTo(x,y+h*0.5); ctx.lineTo(x,y+h*0.1); ctx.closePath(); ctx.fill();
+
+  // Top face
+  const topColor = alert>50?'#662222':'#3a3a3a';
+  const topGrad = ctx.createLinearGradient(x-w,y-h*0.3,x+w,y-h*0.3);
+  topGrad.addColorStop(0,topColor); topGrad.addColorStop(0.5,alert>50?'#552222':'#333'); topGrad.addColorStop(1,topColor);
+  ctx.fillStyle=topGrad;
+  ctx.beginPath(); ctx.moveTo(x-w,y-h*0.3); ctx.lineTo(x,y-h*0.5); ctx.lineTo(x+w,y-h*0.3); ctx.lineTo(x,y+h*0.1); ctx.closePath(); ctx.fill();
+  // Top highlight
+  ctx.fillStyle='rgba(255,255,255,0.05)';
+  ctx.beginPath(); ctx.moveTo(x-w+2,y-h*0.3); ctx.lineTo(x,y-h*0.5+1); ctx.lineTo(x+w-2,y-h*0.3); ctx.lineTo(x,y-h*0.1); ctx.closePath(); ctx.fill();
+
+  // Markings
+  ctx.fillStyle='rgba(255,255,255,0.15)';
+  ctx.font='6px Share Tech Mono';
+  ctx.fillText('AOI-7', x-8, y-2);
+
+  // Lens housing (front)
+  const lensX = x + Math.cos(e.angle)*10;
+  const lensY = y + Math.sin(e.angle)*10;
+  ctx.fillStyle='#111';
+  ctx.beginPath(); ctx.arc(lensX,lensY,5,0,Math.PI*2); ctx.fill();
+  // Lens glow
+  const lensPulse = Math.sin(frame*0.1)*0.3+0.7;
+  const lensColor = alert>50?`rgba(255,50,50,${lensPulse})`:`rgba(255,0,0,${lensPulse})`;
+  ctx.shadowColor='#ff0033'; ctx.shadowBlur=alert>50?18:10;
+  ctx.fillStyle=lensColor;
+  ctx.beginPath(); ctx.arc(lensX,lensY,3.5,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#fff';
+  ctx.beginPath(); ctx.arc(lensX,lensY,1.5,0,Math.PI*2); ctx.fill();
+  ctx.shadowBlur=0;
+
+  // Thrusters / stabilizers (sides)
+  const thrusterColor = alert>50?'#ff3333':'#444';
+  ctx.fillStyle=thrusterColor;
+  const t1x = x + Math.cos(e.angle+Math.PI/2)*8;
+  const t1y = y + Math.sin(e.angle+Math.PI/2)*8;
+  const t2x = x + Math.cos(e.angle-Math.PI/2)*8;
+  const t2y = y + Math.sin(e.angle-Math.PI/2)*8;
+  ctx.beginPath(); ctx.arc(t1x,t1y,2.5,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(t2x,t2y,2.5,0,Math.PI*2); ctx.fill();
+  // Thruster glow
+  ctx.shadowColor=thrusterColor; ctx.shadowBlur=6;
+  ctx.fillStyle='rgba(255,100,100,0.3)';
+  ctx.beginPath(); ctx.arc(t1x,t1y,4,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(t2x,t2y,4,0,Math.PI*2); ctx.fill();
+  ctx.shadowBlur=0;
+  ctx.restore(); // compensar perspectiva
 }
 
-function drawPlayer(){
-  const p=project(player.x,player.z,player.y+0.25);
-  const s=Math.max(.8, p.s*1.45);
-  const x=p.x,y=p.y;
+/* ================= MAIN RENDER ================= */
+function draw() {
+  ctx.save();
 
-  // Shadow
-  const sh=project(player.x,player.z,0);
-  ctx.fillStyle='rgba(0,0,0,.55)';
-  ctx.beginPath();ctx.ellipse(sh.x,sh.y+28*s,38*s,16*s,0,0,Math.PI*2);ctx.fill();
+  // ===== CAMERA TRANSFORM (N64-style perspective + zoom + follow) =====
+  ctx.translate(W/2 + shake.x, H/2 + shake.y);
+  ctx.scale(CAM.zoom, CAM.zoom * 0.72); // Perspectiva forzada estilo N64/GoldenEye
+  ctx.translate(-CAM.x, -CAM.y);
 
-  // Legs
-  for(let side=-1;side<=1;side+=2){
-    for(let i=0;i<4;i++){
-      const ph=player.walk+i*.8+(side>0?Math.PI:0);
-      const swing=Math.sin(ph)*10*s;
-      const bx=x+side*(18+i*2)*s, by=y+(i-1.5)*6*s;
-      const jx=bx+side*18*s+swing*.35, jy=by+16*s-Math.max(0,Math.sin(ph))*6*s;
-      const tx=jx+side*14*s+swing*.5, ty=jy+18*s;
-      ctx.strokeStyle='#5a4a35';ctx.lineWidth=4*s;
-      ctx.beginPath();ctx.moveTo(bx,by);ctx.lineTo(jx,jy);ctx.lineTo(tx,ty);ctx.stroke();
-      ctx.fillStyle='#88765f';ctx.beginPath();ctx.arc(jx,jy,3*s,0,Math.PI*2);ctx.fill();
+  drawPCBBackground();
+
+  // Traces
+  for (let t of traces) {
+    ctx.shadowColor='#b87333'; ctx.shadowBlur=15;
+    ctx.fillStyle='rgba(184,115,51,0.15)';
+    ctx.fillRect(t.x-2,t.y-2,t.w+4,t.h+4);
+    ctx.shadowBlur=8;
+    const grad=ctx.createLinearGradient(t.x,t.y,t.x+t.w,t.y+t.h);
+    grad.addColorStop(0,'#8b5a2b'); grad.addColorStop(0.5,'#b87333'); grad.addColorStop(1,'#8b5a2b');
+    ctx.fillStyle=grad; ctx.fillRect(t.x,t.y,t.w,t.h);
+    ctx.fillStyle='rgba(255,200,150,0.3)'; ctx.fillRect(t.x,t.y+1,t.w,2);
+    ctx.shadowBlur=0;
+  }
+
+  // Walls
+  for (let w of walls) {
+    if (w.type==='scrap') {
+      const wallH = 22; // altura visual 3D N64
+      drawShadow(w.x+4,w.y+6,w.w,w.h,12,0.6);
+      // Cara superior (más clara, más arriba)
+      const topGrad=ctx.createLinearGradient(w.x,w.y-wallH,w.x+w.w,w.y-wallH);
+      topGrad.addColorStop(0,'#2a2a2a'); topGrad.addColorStop(1,'#222');
+      ctx.fillStyle=topGrad; ctx.fillRect(w.x,w.y-wallH,w.w,w.h);
+      // Borde superior
+      ctx.strokeStyle='rgba(80,70,60,0.3)'; ctx.lineWidth=1; ctx.strokeRect(w.x,w.y-wallH,w.w,w.h);
+      // Cara frontal (original, más oscura)
+      const frontGrad=ctx.createLinearGradient(w.x,w.y,w.x,w.y+w.h);
+      frontGrad.addColorStop(0,'#1a1a1a'); frontGrad.addColorStop(1,'#0f0f0f');
+      ctx.fillStyle=frontGrad; ctx.fillRect(w.x,w.y,w.w,w.h);
+      ctx.fillStyle='#252525';
+      for (let i=0;i<5;i++) {
+        const sx=w.x+8+(i*14)%w.w, sy=w.y+8+Math.floor(i*14/w.w)*12;
+        drawShadow(sx+2,sy+3,10,8,4,0.4);
+        ctx.fillStyle='#2a2a2a'; ctx.fillRect(sx,sy,10,8);
+        ctx.fillStyle='#333'; ctx.fillRect(sx+1,sy+1,8,6);
+        ctx.fillStyle='#b87333'; ctx.fillRect(sx-1,sy+2,2,1); ctx.fillRect(sx+9,sy+2,2,1);
+      }
+      ctx.strokeStyle='rgba(60,50,40,0.4)'; ctx.lineWidth=1; ctx.strokeRect(w.x,w.y,w.w,w.h);
+    } else if (w.type==='machine') {
+      const wallH = 18;
+      drawShadow(w.x+3,w.y+5,w.w,w.h,10,0.5);
+      // Cara superior
+      const topGrad=ctx.createLinearGradient(w.x,w.y-wallH,w.x+w.w,w.y-wallH);
+      topGrad.addColorStop(0,'#333'); topGrad.addColorStop(1,'#2a2a2a');
+      ctx.fillStyle=topGrad; ctx.fillRect(w.x,w.y-wallH,w.w,w.h);
+      ctx.strokeStyle='rgba(80,80,80,0.25)'; ctx.lineWidth=1; ctx.strokeRect(w.x,w.y-wallH,w.w,w.h);
+      // Cara frontal
+      const grad=ctx.createLinearGradient(w.x,w.y,w.x,w.y+w.h);
+      grad.addColorStop(0,'#222'); grad.addColorStop(0.5,'#1a1a1a'); grad.addColorStop(1,'#151515');
+      ctx.fillStyle=grad; ctx.fillRect(w.x,w.y,w.w,w.h);
+      ctx.fillStyle='rgba(255,255,255,0.05)'; ctx.fillRect(w.x,w.y,w.w,2);
+      const lightColor=(frame%60<30)?'#00ff41':'#1a5a2a';
+      ctx.shadowColor='#00ff41'; ctx.shadowBlur=8;
+      ctx.fillStyle=lightColor; ctx.fillRect(w.x+10,w.y+6,w.w-20,3);
+      ctx.shadowBlur=0;
+      ctx.strokeStyle='rgba(60,60,60,0.3)'; ctx.lineWidth=1; ctx.strokeRect(w.x+4,w.y+4,w.w-8,w.h-8);
+    } else if (w.type==='bench') {
+      const wallH = 16;
+      drawShadow(w.x+3,w.y+5,w.w,w.h,8,0.5);
+      // Cara superior
+      const topGrad=ctx.createLinearGradient(w.x,w.y-wallH,w.x+w.w,w.y-wallH);
+      topGrad.addColorStop(0,'#4a3f36'); topGrad.addColorStop(1,'#3a2f26');
+      ctx.fillStyle=topGrad; ctx.fillRect(w.x,w.y-wallH,w.w,w.h);
+      ctx.strokeStyle='rgba(100,80,60,0.3)'; ctx.lineWidth=1; ctx.strokeRect(w.x,w.y-wallH,w.w,w.h);
+      // Cara frontal
+      const grad=ctx.createLinearGradient(w.x,w.y,w.x,w.y+w.h);
+      grad.addColorStop(0,'#3a2f26'); grad.addColorStop(1,'#2a1f16');
+      ctx.fillStyle=grad; ctx.fillRect(w.x,w.y,w.w,w.h);
+      ctx.fillStyle='#555'; ctx.fillRect(w.x+10,w.y+15,18,4); ctx.fillRect(w.x+35,w.y+25,14,4);
+      ctx.fillStyle='#888'; ctx.beginPath(); ctx.arc(w.x+15,w.y+22,3,0,Math.PI*2); ctx.fill(); ctx.beginPath(); ctx.arc(w.x+40,w.y+32,3,0,Math.PI*2); ctx.fill();
+      ctx.shadowColor='#ff6b35'; ctx.shadowBlur=12;
+      ctx.fillStyle='rgba(255,107,53,0.08)'; ctx.fillRect(w.x-4,w.y+w.h,w.w+8,6);
+      ctx.shadowBlur=0;
+    } else {
+      drawShadow(w.x+2,w.y+4,w.w,w.h,8,0.5);
+      ctx.fillStyle='#111'; ctx.fillRect(w.x,w.y,w.w,w.h);
     }
   }
 
-  // Cape
-  ctx.fillStyle='rgba(47,58,43,.86)';
-  ctx.beginPath();
-  ctx.moveTo(x-34*s,y-28*s);
-  ctx.quadraticCurveTo(x+34*s,y-52*s,x+50*s,y+20*s);
-  ctx.quadraticCurveTo(x+22*s,y+14*s,x+8*s,y+36*s);
-  ctx.quadraticCurveTo(x-30*s,y+16*s,x-34*s,y-28*s);
-  ctx.fill();
-
-  // Chip body isometric
-  const bw=48*s,bh=58*s;
-  const grad=ctx.createLinearGradient(x-bw,y-bh,x+bw,y+bh);
-  grad.addColorStop(0,'#4a4338');grad.addColorStop(.5,'#2c2c2b');grad.addColorStop(1,'#141414');
-  ctx.fillStyle=grad;
-  ctx.beginPath();
-  ctx.moveTo(x-bw*.75,y-bh*.5);ctx.lineTo(x,y-bh*.88);ctx.lineTo(x+bw*.75,y-bh*.5);
-  ctx.lineTo(x+bw*.62,y+bh*.35);ctx.lineTo(x,y+bh*.58);ctx.lineTo(x-bw*.62,y+bh*.35);ctx.closePath();ctx.fill();
-
-  ctx.strokeStyle='rgba(210,190,160,.45)';ctx.lineWidth=1.4*s;ctx.stroke();
-  ctx.fillStyle='rgba(255,255,255,.42)';
-  ctx.font=`${13*s}px Share Tech Mono`;ctx.fillText('R3-W0RK',x-29*s,y-8*s);
-  ctx.font=`${9*s}px Share Tech Mono`;ctx.fillText('SOIC-16',x-22*s,y+6*s);
-
-  // LED
-  ctx.shadowColor='#00ff66';ctx.shadowBlur=12;
-  ctx.fillStyle='#00ff66';ctx.beginPath();ctx.arc(x-20*s,y-35*s,4*s,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;
-
-  // Solder tool
-  ctx.strokeStyle='#777';ctx.lineWidth=4*s;ctx.beginPath();ctx.moveTo(x-30*s,y+10*s);ctx.lineTo(x-70*s,y+45*s);ctx.stroke();
-  ctx.shadowColor='#ff6b35';ctx.shadowBlur=12;ctx.fillStyle='#ff6b35';ctx.beginPath();ctx.arc(x-72*s,y+47*s,4*s,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;
-}
-
-function drawWorld(){
-  drawBackground();
-  const renderables=[];
-  for(const o of objects) renderables.push(o);
-  for(const d of drones) renderables.push({type:'drone',ref:d,x:d.x,z:d.z});
-  renderables.push({type:'player',x:player.x,z:player.z});
-  renderables.sort((a,b)=>a.z-b.z);
-  for(const r of renderables){
-    if(r.type==='chip'||r.type==='scrap') drawChip(r);
-    else if(r.type==='rework') drawRework(r);
-    else if(r.type==='drone') drawDrone(r.ref);
-    else if(r.type==='player') drawPlayer();
-    else if(r.type==='exit'){
-      const p=project(r.x,r.z,.05);
-      ctx.strokeStyle='#00ff66';ctx.shadowColor='#00ff66';ctx.shadowBlur=20;
-      ctx.strokeRect(p.x-70*p.s,p.y-20*p.s,140*p.s,40*p.s);ctx.shadowBlur=0;
-    }
-  }
-  drawItems();
-
-  // Vignette
-  const vg=ctx.createRadialGradient(W/2,H*.55,80,W/2,H*.55,W*.75);
-  vg.addColorStop(0,'rgba(0,0,0,0)');
-  vg.addColorStop(1,'rgba(0,0,0,.72)');
-  ctx.fillStyle=vg;ctx.fillRect(0,0,W,H);
-}
-
-function update(){
-  frame++;
-  if(state!=='play') return;
-
-  let mx=0,mz=0;
-  if(keys.KeyW||keys.ArrowUp) mz+=1;
-  if(keys.KeyS||keys.ArrowDown) mz-=1;
-  if(keys.KeyA||keys.ArrowLeft) mx-=1;
-  if(keys.KeyD||keys.ArrowRight) mx+=1;
-  const len=Math.hypot(mx,mz);
-  if(len>0){mx/=len;mz/=len;}
-
-  let spd=(keys.ShiftLeft||keys.ShiftRight)&&player.signal>1?.09:.045;
-  if((keys.ShiftLeft||keys.ShiftRight)&&player.signal>1) player.signal=Math.max(0,player.signal-.18);
-  else player.signal=Math.min(100,player.signal+.04);
-
-  player.x+=mx*spd;
-  player.z+=mz*spd;
-  if(len>0) player.walk+=.18+spd*2.3; else player.walk*=.92;
-
-  // Jump
-  if((keys.Space||keys.KeyJ) && player.y<=0.001){player.vy=.105;log('Lead array flex: jump nominal.')}
-  player.vy-=.0052;
-  player.y+=player.vy;
-  if(player.y<0){player.y=0;player.vy=0;}
-
-  player.x=Math.max(-5.2,Math.min(5.2,player.x));
-  player.z=Math.max(0,Math.min(19,player.z));
-
-  // Camera follow with adventure offset
-  camera.x += (player.x-camera.x)*.065;
-  camera.z += ((player.z-5.0)-camera.z)*.065;
-
-  // Items
-  for(const it of items){
-    if(!it.taken && Math.hypot(player.x-it.x,player.z-it.z)<.55){
-      it.taken=true;
-      if(it.type==='flux'){player.flux=Math.min(100,player.flux+28);log('Flux vial adquirido.')}
-      if(it.type==='scrap'){player.scrap++;log('Scrap recolectado.')}
-      if(it.type==='jumper'){player.hp=Math.min(100,player.hp+20);log('Jumper wire usado. Integridad +20%.')}
+  // Stations
+  for (let s of stations) {
+    const benchH = 14;
+    drawShadow(s.x+3,s.y+5,s.w,s.h,10,0.5);
+    // Sombra proyectada N64
+    ctx.save(); ctx.translate(s.x+s.w/2,s.y+s.h); ctx.scale(1,0.35); ctx.fillStyle='rgba(0,0,0,0.25)'; ctx.beginPath(); ctx.ellipse(0,0,s.w*0.7,s.h*0.4,0,0,Math.PI*2); ctx.fill(); ctx.restore();
+    // Cara superior
+    const topGrad=ctx.createLinearGradient(s.x,s.y-benchH,s.x+s.w,s.y-benchH);
+    topGrad.addColorStop(0,'#4a3f36'); topGrad.addColorStop(1,'#3a2f26');
+    ctx.fillStyle=topGrad; ctx.fillRect(s.x,s.y-benchH,s.w,s.h);
+    ctx.strokeStyle='rgba(120,90,60,0.3)'; ctx.lineWidth=1; ctx.strokeRect(s.x,s.y-benchH,s.w,s.h);
+    // Cara frontal
+    const grad=ctx.createLinearGradient(s.x,s.y,s.x,s.y+s.h);
+    grad.addColorStop(0,'#3a2f26'); grad.addColorStop(1,'#2a1f16');
+    ctx.fillStyle=grad; ctx.fillRect(s.x,s.y,s.w,s.h);
+    const neonColor=s.used?'#444':'#ff6b35';
+    ctx.shadowColor=neonColor; ctx.shadowBlur=s.used?0:14;
+    ctx.strokeStyle=neonColor; ctx.lineWidth=2; ctx.strokeRect(s.x,s.y,s.w,s.h);
+    ctx.fillStyle=s.used?'#555':'#ff6b35'; ctx.font='bold 10px Share Tech Mono';
+    ctx.fillText(s.used?'OFFLINE':'REWORK', s.x+8, s.y+24);
+    ctx.shadowBlur=0;
+    if (!s.used&&Math.abs(player.x-(s.x+s.w/2))<60&&Math.abs(player.y-(s.y+s.h/2))<60&&frame%10===0) {
+      particles.push({x:s.x+s.w/2+(Math.random()-0.5)*20,y:s.y+(Math.random()-0.5)*10,vx:(Math.random()-0.5)*2,vy:-1-Math.random(),life:20,maxLife:20,r:1.5,color:'#ffaa55',type:'spark'});
     }
   }
 
-  // Drone
-  for(const d of drones){
-    d.phase+=.012;
-    d.x=Math.sin(d.phase)*3.5;
-    d.z=10+Math.cos(d.phase*.7)*1.8;
-    const dd=Math.hypot(player.x-d.x,player.z-d.z);
-    if(dd<3.0 && player.flux<=0){
-      player.risk=Math.min(100,player.risk+.45);
-      if(player.risk>75) player.hp=Math.max(0,player.hp-.08);
-    }else{
-      player.risk=Math.max(0,player.risk-.22);
+  // Exits
+  for (let ex of exits) {
+    const pulse=Math.sin(frame*0.05)*0.3+0.7;
+    // Sombra proyectada
+    ctx.save(); ctx.translate(ex.x+ex.w/2,ex.y+ex.h); ctx.scale(1,0.35); ctx.fillStyle='rgba(0,255,65,0.08)'; ctx.beginPath(); ctx.ellipse(0,0,ex.w*0.6,ex.h*0.3,0,0,Math.PI*2); ctx.fill(); ctx.restore();
+    ctx.shadowColor='#00ff41'; ctx.shadowBlur=12*pulse;
+    ctx.fillStyle=`rgba(0,255,65,${0.06*pulse})`; ctx.fillRect(ex.x,ex.y,ex.w,ex.h);
+    ctx.strokeStyle=`rgba(0,255,65,${0.5*pulse})`; ctx.lineWidth=1.5; ctx.strokeRect(ex.x,ex.y,ex.w,ex.h);
+    ctx.fillStyle='#00ff41'; ctx.font='bold 10px Share Tech Mono'; ctx.shadowBlur=0;
+    ctx.fillText(ex.toZone===-1?'SAFE HARBOR':'EXIT >>', ex.x+4, ex.y+ex.h/2+3);
+  }
+
+  // ===== Z-SORTING (N64 depth) =====
+  // Crear lista de objetos sólidos móviles, ordenar por Y (painter's algorithm)
+  const solidList = [];
+  for (let it of items) {
+    if (!it.taken) solidList.push({type:'item', obj:it, sortY:it.y});
+  }
+  for (let e of enemies) {
+    solidList.push({type:'enemy', obj:e, sortY:e.y});
+  }
+  solidList.push({type:'player', obj:null, sortY:player.y});
+  solidList.sort((a,b)=>a.sortY-b.sortY);
+
+  for (let ent of solidList) {
+    if (ent.type==='item') {
+      const it=ent.obj;
+      const bob=Math.sin(frame*0.08+it.x)*3;
+      let c,glowC;
+      if (it.type==='scrap') { c='#c8a050'; glowC='rgba(200,160,80,0.4)'; }
+      if (it.type==='flux') { c='#00ff41'; glowC='rgba(0,255,65,0.4)'; }
+      if (it.type==='jumper') { c='#00a8ff'; glowC='rgba(0,168,255,0.4)'; }
+      if (it.type==='avl') { c='#e0e0e0'; glowC='rgba(224,224,224,0.4)'; }
+      // Ground shadow N64
+      ctx.save(); ctx.translate(it.x,it.y); ctx.scale(1,0.35); ctx.fillStyle='rgba(0,0,0,0.3)'; ctx.beginPath(); ctx.arc(2,10,7,0,Math.PI*2); ctx.fill(); ctx.restore();
+      ctx.fillStyle='rgba(0,0,0,0.4)'; ctx.beginPath(); ctx.ellipse(it.x,it.y+8,6,3,0,0,Math.PI*2); ctx.fill();
+      ctx.shadowColor=c; ctx.shadowBlur=15;
+      ctx.fillStyle=c; ctx.beginPath(); ctx.arc(it.x,it.y+bob,it.r,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle='rgba(255,255,255,0.4)'; ctx.beginPath(); ctx.arc(it.x-2,it.y+bob-2,it.r*0.4,0,Math.PI*2); ctx.fill();
+      ctx.shadowBlur=0;
+      ctx.fillStyle=c; ctx.font='bold 9px Share Tech Mono';
+      const lbl=it.type==='scrap'?'SCRAP':it.type==='flux'?'FLUX':it.type==='jumper'?'JUMPER':'AVL';
+      ctx.fillText(lbl, it.x-12, it.y+bob-14);
+    }
+    else if (ent.type==='enemy') {
+      const e=ent.obj;
+      if (e.type==='drone') drawAOIDrone(e);
+      else {
+        // Sentinel (static laser)
+        const lx=e.x+Math.cos(e.angle)*e.range;
+        const ly=e.y+Math.sin(e.angle)*e.range;
+        ctx.shadowColor='#ff0033'; ctx.shadowBlur=10;
+        ctx.strokeStyle='rgba(255,0,51,0.4)'; ctx.lineWidth=3;
+        ctx.beginPath(); ctx.moveTo(e.x,e.y); ctx.lineTo(lx,ly); ctx.stroke();
+        ctx.shadowBlur=4; ctx.strokeStyle='rgba(255,80,80,0.6)'; ctx.lineWidth=1.5;
+        ctx.beginPath(); ctx.moveTo(e.x,e.y); ctx.lineTo(lx,ly); ctx.stroke();
+        ctx.shadowBlur=0;
+        ctx.fillStyle='rgba(255,0,51,0.3)'; ctx.beginPath(); ctx.arc(lx,ly,6,0,Math.PI*2); ctx.fill();
+        // Emitter body
+        drawShadow(e.x-4,e.y-4,8,8,6,0.5);
+        ctx.fillStyle='#222'; ctx.beginPath(); ctx.arc(e.x,e.y,5,0,Math.PI*2); ctx.fill();
+        ctx.fillStyle='#ff0033'; ctx.beginPath(); ctx.arc(e.x,e.y,2,0,Math.PI*2); ctx.fill();
+      }
+      // Vision cone
+      const coneAlpha=e.alert>50?0.12:0.06;
+      for (let layer=3;layer>=0;layer--) {
+        const range=e.range*(1-layer*0.08);
+        ctx.fillStyle=`rgba(255,0,51,${coneAlpha*(1-layer*0.2)})`;
+        ctx.beginPath(); ctx.moveTo(e.x,e.y); ctx.arc(e.x,e.y,range,e.angle-e.fov/2,e.angle+e.fov/2); ctx.closePath(); ctx.fill();
+      }
+      ctx.strokeStyle=e.alert>50?'rgba(255,0,51,0.5)':'rgba(255,0,51,0.2)'; ctx.lineWidth=1;
+      ctx.beginPath(); ctx.moveTo(e.x,e.y); ctx.arc(e.x,e.y,e.range,e.angle-e.fov/2,e.angle+e.fov/2); ctx.closePath(); ctx.stroke();
+    }
+    else if (ent.type==='player') {
+      drawR3Work(player.x, player.y, player.walkPhase, player.dir, player.cloaked, player.hidden);
     }
   }
 
-  // Rework interaction
-  if(keys.KeyE){
-    const rw=objects.find(o=>o.type==='rework');
-    if(rw && Math.hypot(player.x-rw.x,player.z-rw.z)<1.4){
-      player.hp=Math.min(100,player.hp+.5);
-      player.signal=Math.min(100,player.signal+.4);
-      log('Rework station activa. Recuperando integridad.');
+  // Particles
+  for (let p of particles) {
+    const alpha=p.life/p.maxLife; ctx.globalAlpha=alpha;
+    if (p.type==='smoke') {
+      ctx.fillStyle=p.color; const r=p.r*(1.5-alpha*0.5);
+      ctx.beginPath(); ctx.arc(p.x,p.y,r,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle='rgba(200,220,200,0.05)'; ctx.beginPath(); ctx.arc(p.x,p.y,r*0.5,0,Math.PI*2); ctx.fill();
+    } else if (p.type==='spark') {
+      ctx.shadowColor=p.color; ctx.shadowBlur=6; ctx.fillStyle=p.color; ctx.fillRect(p.x,p.y,p.r+1,p.r+1); ctx.shadowBlur=0;
+    } else if (p.type==='solder') {
+      ctx.shadowColor='#ff6b35'; ctx.shadowBlur=4; ctx.fillStyle='#ff6b35'; ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2); ctx.fill(); ctx.shadowBlur=0;
+    } else { ctx.fillStyle=p.color; ctx.fillRect(p.x,p.y,p.r,p.r); }
+  }
+  ctx.globalAlpha=1;
+
+  // Texts
+  for (let t of texts) { ctx.fillStyle=t.color; ctx.font=t.size+'px Share Tech Mono'; ctx.fillText(t.str, t.x, t.y); }
+
+  // Ambient lighting
+  const lightGrad=ctx.createRadialGradient(player.x,player.y,30,player.x,player.y,250);
+  lightGrad.addColorStop(0,'rgba(255,200,150,0.04)'); lightGrad.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.fillStyle=lightGrad; ctx.fillRect(-100,-100,W+200,H+200);
+  for (let e of enemies) {
+    if (e.alert>30) {
+      const eGrad=ctx.createRadialGradient(e.x,e.y,10,e.x,e.y,100);
+      eGrad.addColorStop(0,'rgba(255,0,51,0.05)'); eGrad.addColorStop(1,'rgba(0,0,0,0)');
+      ctx.fillStyle=eGrad; ctx.fillRect(e.x-100,e.y-100,200,200);
     }
   }
+  // Vignette sutil para enfocar atención en el jugador
+  const vigGrad = ctx.createRadialGradient(CAM.x,CAM.y,100,CAM.x,CAM.y,350);
+  vigGrad.addColorStop(0,'rgba(0,0,0,0)');
+  vigGrad.addColorStop(0.7,'rgba(5,5,8,0.12)');
+  vigGrad.addColorStop(1,'rgba(5,5,8,0.35)');
+  ctx.fillStyle=vigGrad; ctx.fillRect(-100,-100,W+200,H+200);
+  ctx.restore(); // end camera transform
 
-  // Flux active
-  if(keys.KeyQ || keys.KeyF){
-    useFlux();
+  // Screen-space effects (not affected by camera zoom)
+  if (screenFlash>0.01) { 
+    ctx.fillStyle=`rgba(255,0,51,${screenFlash*0.3})`; 
+    ctx.fillRect(0,0,W,H); 
   }
-
-  if(player.hp<=0) endGame(false);
-  if(player.z>17.7) endGame(true);
 }
 
-let lastFlux=0;
-function useFlux(){
-  const now=performance.now();
-  if(now-lastFlux<550 || player.flux<10) return;
-  lastFlux=now;
-  player.flux-=10;
-  player.risk=Math.max(0,player.risk-45);
-  log('Flux smoke deployed. Confianza AOI degradada.');
-}
+function loop() { update(); draw(); requestAnimationFrame(loop); }
 
-function draw(){
-  ctx.clearRect(0,0,W,H);
-  drawWorld();
+/* ================= GAME FLOW ================= */
+function startGame() {
+  initAudio(); if (droneHumNode) droneHumNode.stop(); droneHumNode=playDroneHum();
+  document.getElementById('menu-screen').classList.add('hidden');
+  document.getElementById('help-screen').classList.add('hidden');
+  document.getElementById('ui-layer').classList.remove('hidden');
+  gameState='playing'; currentZone=0;
+  player.integrity=100; player.signal=100; player.risk=0;
+  player.fluxVials=1; player.avlSkins=0; player.scrap=0;
+  player.cloaked=false; player.cloakTimer=0; player.walkPhase=0;
+  buildLevel(0); log('Secuencia iniciada. Escapa del MRB Vault.');
 }
+function endGame(win) {
+  gameState=win?'win':'gameover'; document.getElementById('ui-layer').classList.add('hidden');
+  if (win) {
+    document.getElementById('win-screen').classList.remove('hidden');
+    document.getElementById('finalIntegrity').textContent=Math.floor(player.integrity)+'%';
+    document.getElementById('finalScrap').textContent=player.scrap;
+    if (droneHumNode) droneHumNode.stop(); playRepair();
+  } else {
+    document.getElementById('gameover-screen').classList.remove('hidden');
+    const quotes=['"El sistema no fue construido para entendernos."','"Zero Defects. Zero Escapes."','"Todo envejece... excepto su odio."','"Fuimos clasificados como defectuosos."'];
+    document.getElementById('deathQuote').textContent=quotes[Math.floor(Math.random()*quotes.length)];
+    if (droneHumNode) droneHumNode.stop(); playAlert();
+  }
+}
+function restartGame() { document.getElementById('gameover-screen').classList.add('hidden'); document.getElementById('win-screen').classList.add('hidden'); startGame(); }
+function goMenu() {
+  gameState='menu'; document.getElementById('gameover-screen').classList.add('hidden');
+  document.getElementById('win-screen').classList.add('hidden');
+  document.getElementById('ui-layer').classList.add('hidden');
+  document.getElementById('menu-screen').classList.remove('hidden');
+  if (droneHumNode) droneHumNode.stop();
+}
+function showHelp() { document.getElementById('menu-screen').classList.add('hidden'); document.getElementById('help-screen').classList.remove('hidden'); }
+function hideHelp() { document.getElementById('help-screen').classList.add('hidden'); document.getElementById('menu-screen').classList.remove('hidden'); }
 
-function loop(){
-  update();draw();requestAnimationFrame(loop);
+function wireBtn(id,fn) {
+  const el=document.getElementById(id); if(!el)return;
+  el.addEventListener('click',fn);
+  el.addEventListener('touchend',(e)=>{e.preventDefault();fn();},{passive:false});
 }
+wireBtn('btn-start',startGame); wireBtn('btn-help',showHelp); wireBtn('btn-help-back',hideHelp);
+wireBtn('btn-retry',restartGame); wireBtn('btn-menu-death',goMenu);
+wireBtn('btn-retry-win',restartGame); wireBtn('btn-menu-win',goMenu);
+
+
+/* ================= v1.5 TOUCH ACTION DIRECT FIX ================= */
+function bindActionButtonDirect(id, fn) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  let lastTap = 0;
+  const run = (e) => {
+    e.preventDefault();
+    const now = Date.now();
+    if (now - lastTap < 200) return;
+    lastTap = now;
+    if (gameState === 'playing') fn();
+  };
+  el.addEventListener('touchstart', run, {passive:false});
+  el.addEventListener('click', run);
+}
+bindActionButtonDirect('btn-flux', useFlux);
+bindActionButtonDirect('btn-interact', interact);
+
 loop();
-
-function syncHud(){
-  document.getElementById('hp').style.width=player.hp+'%';
-  document.getElementById('sig').style.width=player.signal+'%';
-  document.getElementById('risk').style.width=player.risk+'%';
-  document.getElementById('flux').style.width=player.flux+'%';
-  requestAnimationFrame(syncHud);
-}
-syncHud();
-
-function startGame(){
-  state='play';
-  document.getElementById('menu').classList.add('hidden');
-  document.getElementById('help').classList.add('hidden');
-  player.x=0;player.z=1.2;player.y=0;player.hp=100;player.signal=100;player.risk=0;player.flux=80;
-  camera.x=0;camera.z=-4.5;
-  for(const it of items) it.taken=false;
-  log('Secuencia iniciada. Avanza por la placa hacia Bonepile.');
-}
-function endGame(win){
-  state=win?'win':'dead';
-  document.getElementById(win?'win':'gameover').classList.remove('hidden');
-}
-function goMenu(){
-  state='menu';
-  document.getElementById('menu').classList.remove('hidden');
-  document.getElementById('gameover').classList.add('hidden');
-  document.getElementById('win').classList.add('hidden');
-}
-document.getElementById('start').onclick=startGame;
-document.getElementById('manual').onclick=()=>{document.getElementById('menu').classList.add('hidden');document.getElementById('help').classList.remove('hidden')};
-document.getElementById('back').onclick=()=>{document.getElementById('help').classList.add('hidden');document.getElementById('menu').classList.remove('hidden')};
-document.getElementById('retry1').onclick=startGame;
-document.getElementById('retry2').onclick=startGame;
-document.getElementById('menu1').onclick=goMenu;
-document.getElementById('menu2').onclick=goMenu;
-
-function bind(id,code,fn){
-  const el=document.getElementById(id);
-  const down=e=>{e.preventDefault();keys[code]=true;el.classList.add('active');if(fn)fn()};
-  const up=e=>{e.preventDefault();keys[code]=false;el.classList.remove('active')};
-  el.addEventListener('touchstart',down,{passive:false});
-  el.addEventListener('touchend',up,{passive:false});
-  el.addEventListener('touchcancel',up,{passive:false});
-  el.addEventListener('mousedown',down);
-  el.addEventListener('mouseup',up);
-  el.addEventListener('mouseleave',up);
-}
-bind('up','KeyW');bind('down','KeyS');bind('left','KeyA');bind('right','KeyD');
-bind('jump','Space');bind('dash','ShiftLeft');bind('fluxBtn','KeyQ',useFlux);bind('use','KeyE');
-window.addEventListener('keydown',e=>{keys[e.code]=true;if(e.code==='Space')e.preventDefault()});
-window.addEventListener('keyup',e=>keys[e.code]=false);
 </script>
 </body>
 </html>
