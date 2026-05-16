@@ -327,6 +327,14 @@ const player = {
 
 let enemies=[]; let items=[]; let particles=[]; let stations=[]; let walls=[]; let traces=[]; let exits=[]; let texts=[]; let droneHumNode=null;
 
+/* ================= CAMERA (Zelda-style follow + zoom) ================= */
+const CAM = {
+  x: W/2, y: H/2,
+  zoom: 2.2,
+  targetX: W/2, targetY: H/2,
+  shakeX: 0, shakeY: 0
+};
+
 function log(msg) {
   const el = document.getElementById('gameLog');
   el.innerHTML = '&gt; ' + msg; el.style.borderLeftColor = '#ff6b35';
@@ -338,20 +346,21 @@ function dist(a,b) { return Math.hypot(a.x-b.x, a.y-b.y); }
 
 /* ================= PROCEDURAL BACKGROUND ================= */
 function drawPCBBackground() {
-  rect(0,0,W,H,'#08080c');
+  // Área de respaldo más grande que el mundo para cubrir cámara con zoom
+  rect(-300,-300,W+600,H+600,'#08080c');
   ctx.strokeStyle='rgba(20,50,30,0.25)'; ctx.lineWidth=1;
-  for (let x=0;x<W;x+=60) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke(); }
-  for (let y=0;y<H;y+=60) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); }
+  for (let x=-300;x<W+300;x+=60) { ctx.beginPath(); ctx.moveTo(x,-300); ctx.lineTo(x,H+300); ctx.stroke(); }
+  for (let y=-300;y<H+300;y+=60) { ctx.beginPath(); ctx.moveTo(-300,y); ctx.lineTo(W+300,y); ctx.stroke(); }
   ctx.fillStyle='rgba(10,15,10,0.6)';
-  for (let i=0;i<40;i++) {
-    const vx=((i*137)%W), vy=((i*89)%H);
+  for (let i=0;i<60;i++) {
+    const vx=((i*137)%(W+600))-300, vy=((i*89)%(H+600))-300;
     ctx.beginPath(); ctx.arc(vx,vy,3,0,Math.PI*2); ctx.fill();
     ctx.strokeStyle='rgba(40,70,40,0.3)'; ctx.lineWidth=1;
     ctx.beginPath(); ctx.arc(vx,vy,5,0,Math.PI*2); ctx.stroke();
   }
   ctx.strokeStyle='rgba(26,60,43,0.4)'; ctx.lineWidth=4;
-  for (let i=0;i<8;i++) { const y=80+i*70; ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); }
-  for (let i=0;i<300;i++) { ctx.fillStyle=`rgba(255,255,255,${Math.random()*0.03})`; ctx.fillRect(Math.random()*W,Math.random()*H,1,1); }
+  for (let i=0;i<10;i++) { const y=80+i*70; ctx.beginPath(); ctx.moveTo(-300,y); ctx.lineTo(W+300,y); ctx.stroke(); }
+  for (let i=0;i<500;i++) { ctx.fillStyle=`rgba(255,255,255,${Math.random()*0.03})`; ctx.fillRect(-300+Math.random()*(W+600),-300+Math.random()*(H+600),1,1); }
 }
 
 /* ================= ISO DRAWING HELPERS ================= */
@@ -504,6 +513,19 @@ function update() {
   for (let w of walls) { if (nx>w.x-10&&nx<w.x+w.w+10&&ny>w.y-10&&ny<w.y+w.h+10) { hit=true; break; } }
   if (!hit) { player.x=nx; player.y=ny; }
   player.x=Math.max(20,Math.min(W-20,player.x)); player.y=Math.max(20,Math.min(H-20,player.y));
+
+  // ===== CAMERA FOLLOW (Zelda-style) =====
+  CAM.targetX = player.x;
+  CAM.targetY = player.y;
+  // Clamp para no mostrar vacío negro fuera del mundo
+  const viewHalfW = (W/2) / CAM.zoom;
+  const viewHalfH = (H/2) / CAM.zoom;
+  CAM.targetX = Math.max(viewHalfW, Math.min(W - viewHalfW, CAM.targetX));
+  CAM.targetY = Math.max(viewHalfH, Math.min(H - viewHalfH, CAM.targetY));
+  // Smooth lerp
+  CAM.x += (CAM.targetX - CAM.x) * 0.12;
+  CAM.y += (CAM.targetY - CAM.y) * 0.12;
+
   // Walk phase for leg animation
   if (dx!==0||dy!==0) player.walkPhase += spd * 0.15; else player.walkPhase *= 0.9;
   for (let it of items) {
@@ -776,8 +798,11 @@ function drawAOIDrone(e) {
 /* ================= MAIN RENDER ================= */
 function draw() {
   ctx.save();
-  ctx.translate(shake.x, shake.y);
-  if (screenFlash>0.01) { ctx.fillStyle=`rgba(255,0,51,${screenFlash*0.3})`; ctx.fillRect(-10,-10,W+20,H+20); }
+
+  // ===== CAMERA TRANSFORM (Zelda zoom + follow) =====
+  ctx.translate(W/2 + shake.x, H/2 + shake.y);
+  ctx.scale(CAM.zoom, CAM.zoom);
+  ctx.translate(-CAM.x, -CAM.y);
 
   drawPCBBackground();
 
@@ -936,16 +961,28 @@ function draw() {
 
   // Ambient lighting
   const lightGrad=ctx.createRadialGradient(player.x,player.y,30,player.x,player.y,250);
-  lightGrad.addColorStop(0,'rgba(255,200,150,0.03)'); lightGrad.addColorStop(1,'rgba(0,0,0,0)');
-  ctx.fillStyle=lightGrad; ctx.fillRect(0,0,W,H);
+  lightGrad.addColorStop(0,'rgba(255,200,150,0.04)'); lightGrad.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.fillStyle=lightGrad; ctx.fillRect(-100,-100,W+200,H+200);
   for (let e of enemies) {
     if (e.alert>30) {
       const eGrad=ctx.createRadialGradient(e.x,e.y,10,e.x,e.y,100);
-      eGrad.addColorStop(0,'rgba(255,0,51,0.04)'); eGrad.addColorStop(1,'rgba(0,0,0,0)');
+      eGrad.addColorStop(0,'rgba(255,0,51,0.05)'); eGrad.addColorStop(1,'rgba(0,0,0,0)');
       ctx.fillStyle=eGrad; ctx.fillRect(e.x-100,e.y-100,200,200);
     }
   }
-  ctx.restore();
+  // Vignette sutil para enfocar atención en el jugador
+  const vigGrad = ctx.createRadialGradient(CAM.x,CAM.y,100,CAM.x,CAM.y,350);
+  vigGrad.addColorStop(0,'rgba(0,0,0,0)');
+  vigGrad.addColorStop(0.7,'rgba(5,5,8,0.12)');
+  vigGrad.addColorStop(1,'rgba(5,5,8,0.35)');
+  ctx.fillStyle=vigGrad; ctx.fillRect(-100,-100,W+200,H+200);
+  ctx.restore(); // end camera transform
+
+  // Screen-space effects (not affected by camera zoom)
+  if (screenFlash>0.01) { 
+    ctx.fillStyle=`rgba(255,0,51,${screenFlash*0.3})`; 
+    ctx.fillRect(0,0,W,H); 
+  }
 }
 
 function loop() { update(); draw(); requestAnimationFrame(loop); }
