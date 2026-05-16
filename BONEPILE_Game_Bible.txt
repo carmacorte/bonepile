@@ -1,0 +1,112 @@
+
+BONEPILE — MASTER CONSOLIDATION PACKAGE
+Version 1.0
+
+TITLE:
+BONEPILE
+
+GENRE:
+Industrial Sci‑Fi / Stealth / Survival / Repair Adventure
+
+CORE PREMISE:
+A civilization built on gigantic PCB megastructures lives under an IPC-inspired regime obsessed with perfection, conformity, and manufacturing purity. Non-conforming and repaired units survive underground through illegal rework stations, stealth, sabotage, and repair.
+
+MAIN CHARACTER:
+R3-W0RK
+- Reworked SOIC-16
+- Non-Conforming
+- Repair specialist
+- Uses flux sabotage, fake AVL markings, and repair systems
+
+MAIN THEMES:
+- Functional Imperfection
+- Aging
+- Industrial Decay
+- Repair as Survival
+- Compliance vs Humanity
+- Traceability
+- Manufacturing Horror
+- Obsolescence
+
+MAIN FACTIONS:
+1. IPC AUTHORITY
+   Motto: “Compliance defines existence.”
+
+2. FUNCTIONALISTS / REWORKED
+   Motto: “If it still functions, it still matters.”
+
+GAMEPLAY PILLARS:
+- Inspection Fear
+- Repair as Survival
+- Industrial Stealth
+- Aging & Degradation
+
+GAMEPLAY LOOP:
+Explore
+→ Take Damage / Aging
+→ Collect Repair Materials
+→ Avoid AOI Detection
+→ Return to Illegal Rework Station
+→ Repair / Upgrade
+→ Help NPC Units
+
+CORE SYSTEMS:
+- AOI Detection
+- Flux sabotage
+- AVL skins
+- Damage degradation
+- Aging system
+- Repair benches
+- Traceability mechanics
+
+WORLD REGIONS:
+- SMT Lean Facility
+- Illegal Rework Station
+- MRB Vaults
+- BGA Heights
+- Flux Sewers
+- Aging Fields
+- Torque Assembly
+
+HORROR ELEMENTS:
+- Dendrites
+- False AOI calls
+- Hidden BGA voids
+- Thermal fatigue
+- Corrosion
+- Aging drift
+
+VISUAL STYLE:
+IPC WORLD:
+- sterile
+- symmetrical
+- white
+- geometric
+- perfect
+
+UNDERGROUND:
+- oxidized
+- repaired
+- warm
+- cluttered
+- industrial
+
+TAGLINES:
+- “Repair is rebellion.”
+- “Zero Defects. Zero Escapes.”
+- “Everything ages.”
+- “If it still functions, it still matters.”
+
+VERTICAL SLICE:
+“REJECTED UNIT”
+
+FEATURES:
+- MRB escape
+- AOI stealth
+- repair mechanics
+- illegal rework station
+- IPC infiltration
+- moral choices
+
+ENGINE TARGET:
+Unreal Engine 5
