@@ -27,7 +27,6 @@
   #app { position: relative; width: 100vw; height: 100vh; overflow: hidden; }
   canvas { display: block; width: 100%; height: 100%; cursor: crosshair; }
 
-  /* Loading */
   #loading {
     position: fixed; inset: 0; background: var(--bg); z-index: 100;
     display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -41,7 +40,6 @@
     transition: width 0.2s ease;
   }
 
-  /* Right Palette */
   #palette {
     position: fixed; right: 0; top: 0; bottom: 0; width: 220px;
     background: rgba(18,18,18,0.95); backdrop-filter: blur(8px);
@@ -88,7 +86,6 @@
   .asset-btn:hover { border-color: var(--text-dim); color: var(--text); }
   .asset-btn.selected { border-color: var(--accent); color: var(--accent-hover); background: #2a1a1a; }
 
-  /* Bottom HUD */
   #hud {
     position: fixed; left: 12px; bottom: 12px; z-index: 50;
     display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
@@ -102,7 +99,6 @@
   .hud-btn:active { transform: scale(0.96); }
   .hud-badge { cursor: default; color: var(--text-dim); }
 
-  /* Toast */
   #toast {
     position: fixed; left: 50%; bottom: 80px; transform: translateX(-50%) translateY(20px);
     background: rgba(26,26,26,0.95); border: 1px solid var(--panel-border);
@@ -120,15 +116,14 @@
 <body>
 <div id="loading">
   <div style="font-size:20px; font-weight:700; letter-spacing:0.1em; text-transform:uppercase;">Bonepile</div>
-  <div style="font-size:12px; color:var(--text-dim); margin-top:4px;">Summoning voxel world…</div>
+  <div style="font-size:12px; color:var(--text-dim); margin-top:4px;">Summoning voxel world...</div>
   <div id="loading-bar"><div id="loading-fill"></div></div>
+  <div id="loading-error" style="margin-top:12px;font-size:11px;color:#d44a3a;opacity:0;transition:opacity .3s;"></div>
 </div>
 
 <div id="app" class="hidden">
   <canvas id="game-canvas"></canvas>
-
-  <div id="palette-toggle">☰</div>
-
+  <div id="palette-toggle">&#9776;</div>
   <div id="palette">
     <div id="palette-header">
       <span>Assets</span>
@@ -137,1361 +132,559 @@
     <div class="cat-tabs" id="cat-tabs"></div>
     <div class="asset-grid" id="asset-grid"></div>
   </div>
-
   <div id="hud">
     <button class="hud-btn" id="btn-fill">Fill Ash</button>
     <button class="hud-btn" id="btn-grid">Grid</button>
     <button class="hud-btn" id="btn-erase">Erase</button>
     <button class="hud-btn" id="btn-reset">Reset</button>
-    <div class="hud-badge" id="hud-info">Click to place · Right-click to erase</div>
+    <div class="hud-badge" id="hud-info">Click place / Right-click erase / Shift-drag pan</div>
   </div>
-
   <div id="toast"></div>
 </div>
 
-<script type="module">
-/* ============================================================
-   BONEPILE VOXEL BUILDER
-   Isometric grid engine adapted from Mykonos Island Voxels
-   to dark fantasy bone/lava/ruin theme.
-   ============================================================ */
+<script>
+(function(){
+  "use strict";
 
-const CONFIG = Object.freeze({
-  grid: { width: 14, height: 14 },
-  tile: { w: 64, h: 32 },
-  voxel: { perTile: 4, size: 16, height: 16 },
-  camera: { minZoom: 0.5, maxZoom: 3.0, defaultZoom: 1.4 },
-  layers: Object.freeze({ TERRAIN: 0, WATER: 1, OBJECT: 2 }),
-  storageKey: 'bonepile-voxels.save.v1',
-  palette: Object.freeze({
-    // Ash / ground
-    ash: '#2a2a2a', ashLight: '#3a3a3a', ashDark: '#1a1a1a',
-    // Bone
-    bone: '#e3dac9', boneShadow: '#c4b9a3', boneDark: '#9e917a',
-    // Lava
-    lava: '#d44a3a', lavaLight: '#ff6b35', lavaDark: '#9a2e22', lavaGlow: '#ff9500',
-    // Obsidian
-    obsidian: '#1f1f2e', obsidianLight: '#2e2e42', obsidianHighlight: '#3a3a55',
-    // Moss / rot
-    moss: '#4a5d23', mossLight: '#5e7330', mossDark: '#354a18',
-    // Stone
-    stone: '#6b7280', stoneDark: '#4b505a', stoneLight: '#8b929e',
-    // Blood / organic
-    blood: '#8a1c1c', bloodDark: '#5a0f0f', flesh: '#7a4a4a',
-    // Magic / purple
-    purple: '#4a306d', purpleLight: '#6b4f9e', purpleDark: '#301a4a',
-    // Metal
-    iron: '#4a4a4a', ironRust: '#6b4226', ironLight: '#6b6b6b',
-    // Fire
-    flame: '#ff9500', flameDark: '#cc5500', flameCore: '#ffeb3b',
-    // Misc
-    black: '#0f0f0f', shadow: 'rgba(0,0,0,0.35)',
-  })
-});
-
-const VPT = CONFIG.voxel.perTile;
-const P = CONFIG.palette;
-
-/* ── Voxel primitives ── */
-function box(x, y, z, w, d, h, c) {
-  const out = [];
-  for (let ix = 0; ix < w; ix++)
-    for (let iy = 0; iy < d; iy++)
-      for (let iz = 0; iz < h; iz++)
-        out.push({ x: x + ix, y: y + iy, z: z + iz, c });
-  return out;
-}
-function shell(x, y, z, w, d, h, c, opts = {}) {
-  const out = [];
-  for (let ix = 0; ix < w; ix++)
-    for (let iy = 0; iy < d; iy++)
-      for (let iz = 0; iz < h; iz++) {
-        const wall = ix === 0 || ix === w - 1 || iy === 0 || iy === d - 1 || iz === 0 || (opts.floor !== false && iz === h - 1);
-        if (wall) out.push({ x: x + ix, y: y + iy, z: z + iz, c });
-      }
-  return out;
-}
-function cylinder(cx, cy, z, r, h, c) {
-  const out = [];
-  for (let ix = -r; ix <= r; ix++)
-    for (let iy = -r; iy <= r; iy++)
-      if (ix * ix + iy * iy <= r * r + 0.5)
-        for (let iz = 0; iz < h; iz++)
-          out.push({ x: cx + ix, y: cy + iy, z: z + iz, c });
-  return out;
-}
-function dome(cx, cy, z, r, c) {
-  const out = [];
-  for (let iz = 0; iz <= r; iz++) {
-    const rr = r - iz;
-    for (let ix = -rr; ix <= rr; ix++)
-      for (let iy = -rr; iy <= rr; iy++)
-        if (ix * ix + iy * iy <= rr * rr + 0.5)
-          out.push({ x: cx + ix, y: cy + iy, z: z + iz, c });
-  }
-  return out;
-}
-function pyramidRoof(x, y, z, w, d, h, c) {
-  const out = [];
-  for (let iz = 0; iz < h; iz++) {
-    const inset = iz;
-    const x0 = x + inset, y0 = y + inset;
-    const x1 = x + w - inset, y1 = y + d - inset;
-    if (x1 <= x0 || y1 <= y0) break;
-    for (let ix = x0; ix < x1; ix++)
-      for (let iy = y0; iy < y1; iy++)
-        out.push({ x: ix, y: iy, z: z + iz, c });
-  }
-  return out;
-}
-function compose(...parts) { return parts.flat(); }
-
-/* ── Asset Builders: Bonepile Theme ── */
-const BUILDERS = {
-  // Terrain
-  tileAsh: () => {
-    const v = [];
-    for (let ix = 0; ix < VPT; ix++)
-      for (let iy = 0; iy < VPT; iy++) {
-        const noise = (ix * 7 + iy * 13) % 5;
-        const c = noise === 0 ? P.ashDark : noise === 1 ? P.ashLight : P.ash;
-        v.push({ x: ix, y: iy, z: 0, c });
-      }
-    return v;
-  },
-  tileBoneFloor: () => {
-    const v = [];
-    for (let ix = 0; ix < VPT; ix++)
-      for (let iy = 0; iy < VPT; iy++) {
-        const noise = (ix + iy) % 3;
-        const c = noise === 0 ? P.boneShadow : noise === 1 ? P.bone : P.ash;
-        v.push({ x: ix, y: iy, z: 0, c });
-      }
-    return v;
-  },
-  tileLava: () => {
-    const v = [];
-    for (let ix = 0; ix < VPT; ix++)
-      for (let iy = 0; iy < VPT; iy++) {
-        const noise = (ix * 13 + iy * 7) % 6;
-        const c = noise === 0 ? P.lavaGlow : noise < 3 ? P.lava : P.lavaDark;
-        v.push({ x: ix, y: iy, z: 0, c, lava: true });
-      }
-    return v;
-  },
-  tileObsidian: () => {
-    const v = [];
-    for (let ix = 0; ix < VPT; ix++)
-      for (let iy = 0; iy < VPT; iy++) {
-        const noise = (ix * 3 + iy * 5) % 4;
-        const c = noise === 0 ? P.obsidianHighlight : noise === 1 ? P.obsidianLight : P.obsidian;
-        v.push({ x: ix, y: iy, z: 0, c });
-      }
-    return v;
-  },
-  tileMossStone: () => {
-    const v = [];
-    for (let ix = 0; ix < VPT; ix++)
-      for (let iy = 0; iy < VPT; iy++) {
-        const noise = (ix + iy) % 4;
-        const c = noise === 0 ? P.moss : noise === 1 ? P.stoneDark : P.stone;
-        v.push({ x: ix, y: iy, z: 0, c });
-      }
-    return v;
-  },
-  tileBloodPool: () => {
-    const v = [];
-    for (let ix = 0; ix < VPT; ix++)
-      for (let iy = 0; iy < VPT; iy++) {
-        const noise = (ix * 11 + iy * 3) % 5;
-        const c = noise === 0 ? P.bloodDark : P.blood;
-        v.push({ x: ix, y: iy, z: 0, c, blood: true });
-      }
-    return v;
-  },
-
-  // Nature
-  deadTree: () => {
-    const out = [];
-    const trunk = P.boneDark;
-    out.push({ x: 1, y: 2, z: 0, c: trunk });
-    out.push({ x: 1, y: 2, z: 1, c: trunk });
-    out.push({ x: 1, y: 2, z: 2, c: P.ashLight });
-    // branches
-    out.push({ x: 0, y: 2, z: 3, c: trunk });
-    out.push({ x: 2, y: 2, z: 3, c: trunk });
-    out.push({ x: 1, y: 1, z: 4, c: trunk });
-    out.push({ x: 1, y: 3, z: 4, c: trunk });
-    // hanging moss
-    out.push({ x: 0, y: 2, z: 4, c: P.mossDark });
-    out.push({ x: 2, y: 2, z: 4, c: P.moss });
-    return out;
-  },
-  boneTree: () => {
-    const out = [];
-    out.push({ x: 1, y: 2, z: 0, c: P.boneDark });
-    out.push({ x: 1, y: 2, z: 1, c: P.bone });
-    out.push({ x: 1, y: 2, z: 2, c: P.bone });
-    // rib-like branches
-    for (let i = 0; i < 3; i++) {
-      out.push({ x: 0, y: 2, z: 3 + i, c: P.boneShadow });
-      out.push({ x: 2, y: 2, z: 3 + i, c: P.boneShadow });
-    }
-    out.push({ x: 1, y: 2, z: 6, c: P.bone });
-    return out;
-  },
-  mushroomRed: () => {
-    return compose(
-      box(1, 1, 0, 1, 1, 2, P.boneShadow),
-      box(0, 0, 2, 3, 3, 1, P.blood),
-      box(1, 1, 3, 1, 1, 1, P.bloodDark)
-    );
-  },
-  thorns: () => {
-    const out = [];
-    for (let i = 0; i < 5; i++) {
-      const x = 1 + (i % 2);
-      const y = 1 + Math.floor(i / 2);
-      out.push({ x, y, z: 0, c: P.mossDark });
-      out.push({ x, y, z: 1, c: P.moss });
-    }
-    return out;
-  },
-  hangingSkull: () => {
-    return compose(
-      box(1, 1, 4, 1, 1, 2, P.ironRust),
-      box(1, 1, 3, 1, 1, 1, P.bone),
-      box(0, 1, 2, 1, 1, 1, P.boneShadow },
-      { x: 2, y: 1, z: 2, c: P.boneShadow },
-      { x: 1, y: 1, z: 1, c: P.bone }
-    );
-  },
-
-  // Props
-  skullPile: () => {
-    return compose(
-      box(1, 1, 0, 2, 2, 1, P.boneShadow),
-      box(1, 1, 1, 1, 1, 1, P.bone),
-      box(2, 2, 1, 1, 1, 1, P.boneDark),
-      { x: 1, y: 2, z: 1, c: P.bone }
-    );
-  },
-  boneFence: () => {
-    const out = [];
-    for (let ix = 0; ix < VPT; ix++) {
-      if (ix === 0 || ix === VPT - 1 || ix === Math.floor(VPT / 2)) {
-        out.push({ x: ix, y: VPT - 1, z: 0, c: P.boneDark });
-        out.push({ x: ix, y: VPT - 1, z: 1, c: P.bone });
-      }
-    }
-    for (let ix = 0; ix < VPT; ix++) {
-      out.push({ x: ix, y: VPT - 1, z: 1, c: P.boneShadow });
-    }
-    return out;
-  },
-  tombstone: () => {
-    return compose(
-      box(1, 1, 0, 2, 2, 1, P.stoneDark),
-      box(1, 1, 1, 2, 2, 2, P.stone),
-      box(1, 1, 3, 2, 2, 1, P.stoneLight),
-      { x: 1, y: 1, z: 2, c: P.bloodDark }
-    );
-  },
-  coffin: () => {
-    return compose(
-      box(0, 1, 0, VPT, 2, 1, P.wood),
-      box(0, 1, 1, VPT, 2, 1, P.wood),
-      box(1, 1, 1, 1, 1, 1, P.ironRust },
-      { x: VPT - 2, y: 1, z: 1, c: P.ironRust }
-    );
-  },
-  chains: () => {
-    const out = [];
-    for (let iz = 0; iz < 4; iz++) {
-      out.push({ x: 1, y: 2, z: iz, c: iz % 2 === 0 ? P.iron : P.ironLight });
-    }
-    return out;
-  },
-  torch: () => {
-    return compose(
-      box(1, 1, 0, 1, 1, 3, P.ironRust),
-      box(1, 1, 3, 1, 1, 1, P.flameDark),
-      box(1, 1, 4, 1, 1, 1, P.flame },
-      { x: 1, y: 1, z: 5, c: P.flameCore }
-    );
-  },
-  spikeTrap: () => {
-    const out = [];
-    out.push(...box(0, 0, 0, VPT, VPT, 1, P.iron));
-    for (let ix = 0; ix < VPT; ix++)
-      for (let iy = 0; iy < VPT; iy++)
-        if ((ix + iy) % 2 === 0)
-          out.push({ x: ix, y: iy, z: 1, c: P.ironLight });
-    return out;
-  },
-  ribcage: () => {
-    const out = [];
-    out.push({ x: 0, y: 2, z: 0, c: P.boneDark });
-    out.push({ x: 3, y: 2, z: 0, c: P.boneDark });
-    for (let iz = 1; iz < 4; iz++) {
-      out.push({ x: 0, y: 2, z: iz, c: P.bone });
-      out.push({ x: 3, y: 2, z: iz, c: P.bone });
-      out.push({ x: 1, y: 2, z: iz, c: P.boneShadow });
-      out.push({ x: 2, y: 2, z: iz, c: P.boneShadow });
-    }
-    return out;
-  },
-
-  // Water / hazards
-  lavaBridge: () => {
-    const out = [];
-    for (let ix = 0; ix < VPT * 2; ix++) {
-      const arch = Math.floor(Math.sin((ix / (VPT * 2 - 1)) * Math.PI) * 2);
-      for (let iy = 0; iy < VPT; iy++) {
-        out.push({ x: ix, y: iy, z: arch, c: P.obsidian });
-      }
-      if (arch > 0) {
-        out.push({ x: ix, y: 0, z: arch + 1, c: P.lava });
-        out.push({ x: ix, y: VPT - 1, z: arch + 1, c: P.lava });
-      }
-    }
-    return out;
-  },
-  bloodWell: () => {
-    return compose(
-      box(0, 0, 0, VPT, VPT, 1, P.stoneDark),
-      shell(1, 1, 1, 2, 2, 2, P.stone),
-      { x: 1, y: 1, z: 1, c: P.blood },
-      { x: 2, y: 1, z: 1, c: P.blood },
-      box(0, 0, 3, 1, 1, 3, P.ironRust),
-      box(VPT - 1, VPT - 1, 3, 1, 1, 3, P.ironRust),
-      box(0, 0, 6, VPT, VPT, 1, P.ironRust),
-      pyramidRoof(0, 0, 7, VPT, VPT, 2, P.iron)
-    );
-  },
-
-  // Buildings
-  mausoleum: () => {
-    const W = VPT * 2, D = VPT * 2;
-    return compose(
-      box(0, 0, 0, W, D, 1, P.stoneDark),
-      shell(0, 0, 0, W, D, 5, P.stone),
-      box(0, 0, 5, W, D, 1, P.stoneLight),
-      dome(Math.floor(W / 2), Math.floor(D / 2), 6, 3, P.purple),
-      { x: 3, y: D - 1, z: 0, c: P.purpleDark },
-      { x: 4, y: D - 1, z: 0, c: P.purpleDark },
-      { x: 3, y: D - 1, z: 1, c: P.purpleLight },
-      { x: 4, y: D - 1, z: 1, c: P.purpleLight }
-    );
-  },
-  boneTower: () => {
-    const cx = Math.floor(VPT), cy = Math.floor(VPT);
-    return compose(
-      cylinder(cx, cy, 0, 3, 8, P.boneShadow),
-      cylinder(cx, cy, 8, 2, 1, P.bone),
-      dome(cx, cy, 9, 2, P.boneDark),
-      { x: cx, y: cy, z: 5, c: P.flame },
-      { x: cx + 2, y: cy, z: 5, c: P.flameDark },
-      { x: cx - 2, y: cy, z: 5, c: P.flameDark }
-    );
-  },
-  crypt: () => {
-    const W = VPT * 3, D = VPT * 3;
-    return compose(
-      box(0, 0, 0, W, D, 1, P.ashDark),
-      shell(0, 0, 0, W, D, 4, P.stoneDark),
-      box(0, 0, 4, W, D, 1, P.stone),
-      shell(1, 1, 5, W - 2, D - 2, 3, P.stoneLight),
-      box(1, 1, 8, W - 2, D - 2, 1, P.purpleDark),
-      dome(Math.floor(W / 2), Math.floor(D / 2), 9, 4, P.purple),
-      { x: Math.floor(W / 2), y: D - 1, z: 0, c: P.blood },
-      { x: Math.floor(W / 2) - 1, y: D - 1, z: 0, c: P.blood }
-    );
-  },
-  altarDark: () => {
-    const W = VPT * 2, D = VPT * 2;
-    return compose(
-      box(0, 0, 0, W, D, 2, P.obsidian),
-      box(1, 1, 2, W - 2, D - 2, 1, P.obsidianLight),
-      box(2, 2, 3, W - 4, D - 4, 2, P.purpleDark),
-      { x: Math.floor(W / 2), y: Math.floor(D / 2), z: 5, c: P.flameCore },
-      { x: Math.floor(W / 2), y: Math.floor(D / 2), z: 6, c: P.flame },
-      { x: Math.floor(W / 2) - 1, y: Math.floor(D / 2), z: 5, c: P.blood },
-      { x: Math.floor(W / 2) + 1, y: Math.floor(D / 2), z: 5, c: P.blood }
-    );
-  },
-  skullFort: () => {
-    const W = VPT * 3, D = VPT * 2;
-    return compose(
-      box(0, 0, 0, W, D, 1, P.stoneDark),
-      shell(0, 0, 0, W, D, 6, P.stone),
-      box(0, 0, 6, W, D, 1, P.stoneLight),
-      box(0, 0, 7, 1, 1, 3, P.bone),
-      box(W - 1, 0, 7, 1, 1, 3, P.bone),
-      box(0, D - 1, 7, 1, 1, 3, P.bone),
-      box(W - 1, D - 1, 7, 1, 1, 3, P.bone),
-      { x: Math.floor(W / 2), y: D - 1, z: 0, c: P.bloodDark },
-      { x: Math.floor(W / 2) - 1, y: D - 1, z: 0, c: P.bloodDark }
-    );
-  },
-  necropolisGate: () => {
-    const W = VPT * 2;
-    return compose(
-      box(0, 1, 0, 1, 2, 5, P.stoneDark),
-      box(W - 1, 1, 0, 1, 2, 5, P.stoneDark),
-      box(0, 1, 5, W, 2, 1, P.stone),
-      box(0, 1, 6, W, 2, 1, P.purpleDark),
-      { x: 0, y: 1, z: 5, c: P.purpleLight },
-      { x: W - 1, y: 1, z: 5, c: P.purpleLight },
-      { x: Math.floor(W / 2), y: 1, z: 4, c: P.flameCore }
-    );
-  }
-};
-
-/* ── Asset Manifest ── */
-const T = (id, name, foot = { w: 1, d: 1 }) => ({
-  id, name, category: 'terrain', footprint: foot, kind: 'terrain',
-  sizeScale: 1, builder: BUILDERS[id]
-});
-const O = (cat, defaultScale = 1) => (id, name, foot = { w: 1, d: 1 }, sizeScale = defaultScale) => ({
-  id, name, category: cat, footprint: foot, kind: 'object',
-  sizeScale, builder: BUILDERS[id]
-});
-const N = O('nature', 0.85);
-const P_ = O('props', 0.55);
-const W = O('hazards', 0.85);
-const B = O('buildings', 1);
-
-const ASSET_MANIFEST = [
-  { ...T('ash', 'Ash Wastes'), tileLike: true, builder: BUILDERS.tileAsh },
-  { ...T('bone_floor', 'Bone Floor'), tileLike: true, builder: BUILDERS.tileBoneFloor },
-  { ...T('lava', 'Lava Flow'), tileLike: true, builder: BUILDERS.tileLava },
-  { ...T('obsidian', 'Obsidian'), tileLike: true, builder: BUILDERS.tileObsidian },
-  { ...T('moss_stone', 'Moss Stone'), tileLike: true, builder: BUILDERS.tileMossStone },
-  { ...T('blood_pool', 'Blood Pool'), tileLike: true, builder: BUILDERS.tileBloodPool },
-
-  { ...N('dead_tree', 'Dead Tree', { w: 1, d: 1 }, 0.70), builder: BUILDERS.deadTree },
-  { ...N('bone_tree', 'Bone Tree', { w: 1, d: 1 }, 0.75), builder: BUILDERS.boneTree },
-  { ...N('mushroom_red', 'Blood Mushroom', { w: 1, d: 1 }, 0.50), builder: BUILDERS.mushroomRed },
-  { ...N('thorns', 'Thorn Bush', { w: 1, d: 1 }, 0.55), builder: BUILDERS.thorns },
-  { ...N('hanging_skull', 'Hanging Skull', { w: 1, d: 1 }, 0.40), builder: BUILDERS.hangingSkull },
-
-  { ...P_('skull_pile', 'Skull Pile', { w: 1, d: 1 }, 0.55), builder: BUILDERS.skullPile },
-  { ...P_('bone_fence', 'Bone Fence', { w: 1, d: 1 }, 0.70), flatBase: true, shadowStyle: 'contact', builder: BUILDERS.boneFence },
-  { ...P_('tombstone', 'Tombstone', { w: 1, d: 1 }, 0.60), builder: BUILDERS.tombstone },
-  { ...P_('coffin', 'Coffin', { w: 1, d: 1 }, 0.60), builder: BUILDERS.coffin },
-  { ...P_('chains', 'Chains', { w: 1, d: 1 }, 0.40), builder: BUILDERS.chains },
-  { ...P_('torch', 'Wall Torch', { w: 1, d: 1 }, 0.40), builder: BUILDERS.torch },
-  { ...P_('spike_trap', 'Spike Trap', { w: 1, d: 1 }, 0.90), builder: BUILDERS.spikeTrap },
-  { ...P_('ribcage', 'Ribcage', { w: 1, d: 1 }, 0.55), builder: BUILDERS.ribcage },
-
-  { ...W('lava_bridge', 'Lava Bridge', { w: 2, d: 1 }, 0.95), builder: BUILDERS.lavaBridge },
-  { ...W('blood_well', 'Blood Well', { w: 1, d: 1 }, 0.60), builder: BUILDERS.bloodWell },
-
-  { ...B('mausoleum', 'Mausoleum', { w: 2, d: 2 }), builder: BUILDERS.mausoleum },
-  { ...B('bone_tower', 'Bone Tower', { w: 2, d: 2 }), builder: BUILDERS.boneTower },
-  { ...B('crypt', 'Grand Crypt', { w: 3, d: 3 }), builder: BUILDERS.crypt },
-  { ...B('altar_dark', 'Dark Altar', { w: 2, d: 2 }), builder: BUILDERS.altarDark },
-  { ...B('skull_fort', 'Skull Fort', { w: 3, d: 2 }), builder: BUILDERS.skullFort },
-  { ...B('necropolis_gate', 'Necropolis Gate', { w: 2, d: 1 }), builder: BUILDERS.necropolisGate },
-];
-
-const ASSET_INDEX = Object.freeze(
-  ASSET_MANIFEST.reduce((acc, a) => { acc[a.id] = a; return acc; }, {})
-);
-const CATEGORIES = ['terrain', 'nature', 'props', 'hazards', 'buildings'];
-
-/* ── Isometric math ── */
-function cellToScreen(gx, gy) {
-  const x = (gx - gy) * CONFIG.tile.w / 2;
-  const y = (gx + gy) * CONFIG.tile.h / 2;
-  return { x, y };
-}
-
-/* ── Voxel rasterizer ── */
-function renderVoxelsToCanvas(voxels, palette) {
-  if (!voxels || voxels.length === 0) return null;
-  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-  const VSIZE = CONFIG.voxel.size;
-  const VHEIGHT = CONFIG.voxel.height;
-
-  // Project voxels to screen space
-  const projected = voxels.map(v => {
-    const isoX = (v.x - v.y) * VSIZE / 2;
-    const isoY = (v.x + v.y) * VSIZE / 2 - v.z * VHEIGHT;
-    const px = isoX;
-    const py = isoY;
-    // Diamond shape per voxel top face
-    const w = VSIZE;
-    const h = VSIZE / 2;
-    return { x: px, y: py, w, h, c: v.c, z: v.z, lava: v.lava, blood: v.blood };
+  const CONFIG = Object.freeze({
+    grid: { width: 14, height: 14 },
+    tile: { w: 64, h: 32 },
+    voxel: { perTile: 4, size: 16, height: 16 },
+    camera: { minZoom: 0.5, maxZoom: 3.0, defaultZoom: 1.4 },
+    storageKey: 'bonepile-voxels.save.v1',
+    palette: Object.freeze({
+      ash: '#2a2a2a', ashLight: '#3a3a3a', ashDark: '#1a1a1a',
+      bone: '#e3dac9', boneShadow: '#c4b9a3', boneDark: '#9e917a',
+      lava: '#d44a3a', lavaLight: '#ff6b35', lavaDark: '#9a2e22', lavaGlow: '#ff9500',
+      obsidian: '#1f1f2e', obsidianLight: '#2e2e42', obsidianHighlight: '#3a3a55',
+      moss: '#4a5d23', mossLight: '#5e7330', mossDark: '#354a18',
+      stone: '#6b7280', stoneDark: '#4b505a', stoneLight: '#8b929e',
+      blood: '#8a1c1c', bloodDark: '#5a0f0f', flesh: '#7a4a4a',
+      purple: '#4a306d', purpleLight: '#6b4f9e', purpleDark: '#301a4a',
+      iron: '#4a4a4a', ironRust: '#6b4226', ironLight: '#6b6b6b',
+      flame: '#ff9500', flameDark: '#cc5500', flameCore: '#ffeb3b',
+      black: '#0f0f0f'
+    })
   });
 
-  projected.forEach(p => {
-    minX = Math.min(minX, p.x - p.w / 2);
-    minY = Math.min(minY, p.y - p.h / 2);
-    maxX = Math.max(maxX, p.x + p.w / 2);
-    maxY = Math.max(maxY, p.y + p.h);
-  });
+  const VPT = CONFIG.voxel.perTile;
+  const P = CONFIG.palette;
 
-  const pad = 4;
-  const cw = Math.ceil(maxX - minX + pad * 2);
-  const ch = Math.ceil(maxY - minY + pad * 2);
-  const c = document.createElement('canvas');
-  c.width = cw;
-  c.height = ch;
-  const ctx = c.getContext('2d');
+  function box(x,y,z,w,d,h,c){ const out=[]; for(let ix=0;ix<w;ix++)for(let iy=0;iy<d;iy++)for(let iz=0;iz<h;iz++)out.push({x:x+ix,y:y+iy,z:z+iz,c}); return out; }
+  function shell(x,y,z,w,d,h,c,opts={}){ const out=[]; for(let ix=0;ix<w;ix++)for(let iy=0;iy<d;iy++)for(let iz=0;iz<h;iz++){ const wall=ix===0||ix===w-1||iy===0||iy===d-1||iz===0||(opts.floor!==false&&iz===h-1); if(wall)out.push({x:x+ix,y:y+iy,z:z+iz,c}); } return out; }
+  function cylinder(cx,cy,z,r,h,c){ const out=[]; for(let ix=-r;ix<=r;ix++)for(let iy=-r;iy<=r;iy++)if(ix*ix+iy*iy<=r*r+0.5)for(let iz=0;iz<h;iz++)out.push({x:cx+ix,y:cy+iy,z:z+iz,c}); return out; }
+  function dome(cx,cy,z,r,c){ const out=[]; for(let iz=0;iz<=r;iz++){ const rr=r-iz; for(let ix=-rr;ix<=rr;ix++)for(let iy=-rr;iy<=rr;iy++)if(ix*ix+iy*iy<=rr*rr+0.5)out.push({x:cx+ix,y:cy+iy,z:z+iz,c}); } return out; }
+  function pyramidRoof(x,y,z,w,d,h,c){ const out=[]; for(let iz=0;iz<h;iz++){ const inset=iz; const x0=x+inset,y0=y+inset; const x1=x+w-inset,y1=y+d-inset; if(x1<=x0||y1<=y0)break; for(let ix=x0;ix<x1;ix++)for(let iy=y0;iy<y1;iy++)out.push({x:ix,y:iy,z:z+iz,c}); } return out; }
+  function compose(){ return Array.prototype.concat.apply([], arguments); }
 
-  // Depth sort: back-to-front (painter's algorithm)
-  projected.sort((a, b) => (a.z - b.z) || (a.y - b.y) || (a.x - b.x));
+  const BUILDERS = {
+    tileAsh: ()=>{ const v=[]; for(let ix=0;ix<VPT;ix++)for(let iy=0;iy<VPT;iy++){ const noise=(ix*7+iy*13)%5; const c=noise===0?P.ashDark:(noise===1?P.ashLight:P.ash); v.push({x:ix,y:iy,z:0,c}); } return v; },
+    tileBoneFloor: ()=>{ const v=[]; for(let ix=0;ix<VPT;ix++)for(let iy=0;iy<VPT;iy++){ const noise=(ix+iy)%3; const c=noise===0?P.boneShadow:(noise===1?P.bone:P.ash); v.push({x:ix,y:iy,z:0,c}); } return v; },
+    tileLava: ()=>{ const v=[]; for(let ix=0;ix<VPT;ix++)for(let iy=0;iy<VPT;iy++){ const noise=(ix*13+iy*7)%6; const c=noise===0?P.lavaGlow:(noise<3?P.lava:P.lavaDark); v.push({x:ix,y:iy,z:0,c,lava:true}); } return v; },
+    tileObsidian: ()=>{ const v=[]; for(let ix=0;ix<VPT;ix++)for(let iy=0;iy<VPT;iy++){ const noise=(ix*3+iy*5)%4; const c=noise===0?P.obsidianHighlight:(noise===1?P.obsidianLight:P.obsidian); v.push({x:ix,y:iy,z:0,c}); } return v; },
+    tileMossStone: ()=>{ const v=[]; for(let ix=0;ix<VPT;ix++)for(let iy=0;iy<VPT;iy++){ const noise=(ix+iy)%4; const c=noise===0?P.moss:(noise===1?P.stoneDark:P.stone); v.push({x:ix,y:iy,z:0,c}); } return v; },
+    tileBloodPool: ()=>{ const v=[]; for(let ix=0;ix<VPT;ix++)for(let iy=0;iy<VPT;iy++){ const noise=(ix*11+iy*3)%5; const c=noise===0?P.bloodDark:P.blood; v.push({x:ix,y:iy,z:0,c,blood:true}); } return v; },
 
-  projected.forEach(p => {
-    const cx = p.x - minX + pad;
-    const cy = p.y - minY + pad;
-    const hw = p.w / 2;
-    const hh = p.h / 2;
+    deadTree: ()=>{ const out=[]; const trunk=P.boneDark; out.push({x:1,y:2,z:0,c:trunk}); out.push({x:1,y:2,z:1,c:trunk}); out.push({x:1,y:2,z:2,c:P.ashLight}); out.push({x:0,y:2,z:3,c:trunk}); out.push({x:2,y:2,z:3,c:trunk}); out.push({x:1,y:1,z:4,c:trunk}); out.push({x:1,y:3,z:4,c:trunk}); out.push({x:0,y:2,z:4,c:P.mossDark}); out.push({x:2,y:2,z:4,c:P.moss}); return out; },
+    boneTree: ()=>{ const out=[]; out.push({x:1,y:2,z:0,c:P.boneDark}); out.push({x:1,y:2,z:1,c:P.bone}); out.push({x:1,y:2,z:2,c:P.bone}); for(let i=0;i<3;i++){ out.push({x:0,y:2,z:3+i,c:P.boneShadow}); out.push({x:2,y:2,z:3+i,c:P.boneShadow}); } out.push({x:1,y:2,z:6,c:P.bone}); return out; },
+    mushroomRed: ()=>compose(box(1,1,0,1,1,2,P.boneShadow), box(0,0,2,3,3,1,P.blood), box(1,1,3,1,1,1,P.bloodDark)),
+    thorns: ()=>{ const out=[]; for(let i=0;i<5;i++){ const x=1+(i%2); const y=1+Math.floor(i/2); out.push({x,y,z:0,c:P.mossDark}); out.push({x,y,z:1,c:P.moss}); } return out; },
+    hangingSkull: ()=>compose(box(1,1,4,1,1,2,P.ironRust), box(1,1,3,1,1,1,P.bone), box(0,1,2,1,1,1,P.boneShadow), [{x:2,y:1,z:2,c:P.boneShadow},{x:1,y:1,z:1,c:P.bone}]),
 
-    // Top face (diamond)
-    ctx.beginPath();
-    ctx.moveTo(cx, cy - hh);
-    ctx.lineTo(cx + hw, cy);
-    ctx.lineTo(cx, cy + hh);
-    ctx.lineTo(cx - hw, cy);
-    ctx.closePath();
-    ctx.fillStyle = p.c;
-    ctx.fill();
+    skullPile: ()=>compose(box(1,1,0,2,2,1,P.boneShadow), box(1,1,1,1,1,1,P.bone), box(2,2,1,1,1,1,P.boneDark), [{x:1,y:2,z:1,c:P.bone}]),
+    boneFence: ()=>{ const out=[]; for(let ix=0;ix<VPT;ix++){ if(ix===0||ix===VPT-1||ix===Math.floor(VPT/2)){ out.push({x:ix,y:VPT-1,z:0,c:P.boneDark}); out.push({x:ix,y:VPT-1,z:1,c:P.bone}); } } for(let ix=0;ix<VPT;ix++) out.push({x:ix,y:VPT-1,z:1,c:P.boneShadow}); return out; },
+    tombstone: ()=>compose(box(1,1,0,2,2,1,P.stoneDark), box(1,1,1,2,2,2,P.stone), box(1,1,3,2,2,1,P.stoneLight), [{x:1,y:1,z:2,c:P.bloodDark}]),
+    coffin: ()=>compose(box(0,1,0,VPT,2,1,P.wood), box(0,1,1,VPT,2,1,P.wood), [{x:1,y:1,z:1,c:P.ironRust},{x:VPT-2,y:1,z:1,c:P.ironRust}]),
+    chains: ()=>{ const out=[]; for(let iz=0;iz<4;iz++) out.push({x:1,y:2,z:iz,c:iz%2===0?P.iron:P.ironLight}); return out; },
+    torch: ()=>compose(box(1,1,0,1,1,3,P.ironRust), box(1,1,3,1,1,1,P.flameDark), box(1,1,4,1,1,1,P.flame), [{x:1,y:1,z:5,c:P.flameCore}]),
+    spikeTrap: ()=>{ const out=[]; out.push(...box(0,0,0,VPT,VPT,1,P.iron)); for(let ix=0;ix<VPT;ix++)for(let iy=0;iy<VPT;iy++)if((ix+iy)%2===0) out.push({x:ix,y:iy,z:1,c:P.ironLight}); return out; },
+    ribcage: ()=>{ const out=[]; out.push({x:0,y:2,z:0,c:P.boneDark}); out.push({x:3,y:2,z:0,c:P.boneDark}); for(let iz=1;iz<4;iz++){ out.push({x:0,y:2,z:iz,c:P.bone}); out.push({x:3,y:2,z:iz,c:P.bone}); out.push({x:1,y:2,z:iz,c:P.boneShadow}); out.push({x:2,y:2,z:iz,c:P.boneShadow}); } return out; },
 
-    // Left face
-    ctx.beginPath();
-    ctx.moveTo(cx - hw, cy);
-    ctx.lineTo(cx, cy + hh);
-    ctx.lineTo(cx, cy + hh + VHEIGHT);
-    ctx.lineTo(cx - hw, cy + VHEIGHT);
-    ctx.closePath();
-    ctx.fillStyle = shadeColor(p.c, -20);
-    ctx.fill();
+    lavaBridge: ()=>{ const out=[]; for(let ix=0;ix<VPT*2;ix++){ const arch=Math.floor(Math.sin((ix/(VPT*2-1))*Math.PI)*2); for(let iy=0;iy<VPT;iy++) out.push({x:ix,y:iy,z:arch,c:P.obsidian}); if(arch>0){ out.push({x:ix,y:0,z:arch+1,c:P.lava}); out.push({x:ix,y:VPT-1,z:arch+1,c:P.lava}); } } return out; },
+    bloodWell: ()=>compose(box(0,0,0,VPT,VPT,1,P.stoneDark), shell(1,1,1,2,2,2,P.stone), [{x:1,y:1,z:1,c:P.blood},{x:2,y:1,z:1,c:P.blood}], box(0,0,3,1,1,3,P.ironRust), box(VPT-1,VPT-1,3,1,1,3,P.ironRust), box(0,0,6,VPT,VPT,1,P.ironRust), pyramidRoof(0,0,7,VPT,VPT,2,P.iron)),
 
-    // Right face
-    ctx.beginPath();
-    ctx.moveTo(cx + hw, cy);
-    ctx.lineTo(cx, cy + hh);
-    ctx.lineTo(cx, cy + hh + VHEIGHT);
-    ctx.lineTo(cx + hw, cy + VHEIGHT);
-    ctx.closePath();
-    ctx.fillStyle = shadeColor(p.c, -35);
-    ctx.fill();
-
-    // Edge highlight
-    ctx.strokeStyle = 'rgba(255,255,255,0.06)';
-    ctx.lineWidth = 0.5;
-    ctx.stroke();
-  });
-
-  return {
-    canvas: c,
-    width: cw,
-    height: ch,
-    anchorX: -minX + pad,
-    anchorY: -minY + pad
+    mausoleum: ()=>{ const W=VPT*2,D=VPT*2; return compose(box(0,0,0,W,D,1,P.stoneDark), shell(0,0,0,W,D,5,P.stone), box(0,0,5,W,D,1,P.stoneLight), dome(Math.floor(W/2),Math.floor(D/2),6,3,P.purple), [{x:3,y:D-1,z:0,c:P.purpleDark},{x:4,y:D-1,z:0,c:P.purpleDark},{x:3,y:D-1,z:1,c:P.purpleLight},{x:4,y:D-1,z:1,c:P.purpleLight}]); },
+    boneTower: ()=>{ const cx=Math.floor(VPT),cy=Math.floor(VPT); return compose(cylinder(cx,cy,0,3,8,P.boneShadow), cylinder(cx,cy,8,2,1,P.bone), dome(cx,cy,9,2,P.boneDark), [{x:cx,y:cy,z:5,c:P.flame},{x:cx+2,y:cy,z:5,c:P.flameDark},{x:cx-2,y:cy,z:5,c:P.flameDark}]); },
+    crypt: ()=>{ const W=VPT*3,D=VPT*3; return compose(box(0,0,0,W,D,1,P.ashDark), shell(0,0,0,W,D,4,P.stoneDark), box(0,0,4,W,D,1,P.stone), shell(1,1,5,W-2,D-2,3,P.stoneLight), box(1,1,8,W-2,D-2,1,P.purpleDark), dome(Math.floor(W/2),Math.floor(D/2),9,4,P.purple), [{x:Math.floor(W/2),y:D-1,z:0,c:P.blood},{x:Math.floor(W/2)-1,y:D-1,z:0,c:P.blood}]); },
+    altarDark: ()=>{ const W=VPT*2,D=VPT*2; return compose(box(0,0,0,W,D,2,P.obsidian), box(1,1,2,W-2,D-2,1,P.obsidianLight), box(2,2,3,W-4,D-4,2,P.purpleDark), [{x:Math.floor(W/2),y:Math.floor(D/2),z:5,c:P.flameCore},{x:Math.floor(W/2),y:Math.floor(D/2),z:6,c:P.flame},{x:Math.floor(W/2)-1,y:Math.floor(D/2),z:5,c:P.blood},{x:Math.floor(W/2)+1,y:Math.floor(D/2),z:5,c:P.blood}]); },
+    skullFort: ()=>{ const W=VPT*3,D=VPT*2; return compose(box(0,0,0,W,D,1,P.stoneDark), shell(0,0,0,W,D,6,P.stone), box(0,0,6,W,D,1,P.stoneLight), box(0,0,7,1,1,3,P.bone), box(W-1,0,7,1,1,3,P.bone), box(0,D-1,7,1,1,3,P.bone), box(W-1,D-1,7,1,1,3,P.bone), [{x:Math.floor(W/2),y:D-1,z:0,c:P.bloodDark},{x:Math.floor(W/2)-1,y:D-1,z:0,c:P.bloodDark}]); },
+    necropolisGate: ()=>{ const W=VPT*2; return compose(box(0,1,0,1,2,5,P.stoneDark), box(W-1,1,0,1,2,5,P.stoneDark), box(0,1,5,W,2,1,P.stone), box(0,1,6,W,2,1,P.purpleDark), [{x:0,y:1,z:5,c:P.purpleLight},{x:W-1,y:1,z:5,c:P.purpleLight},{x:Math.floor(W/2),y:1,z:4,c:P.flameCore}]); }
   };
-}
 
-function shadeColor(hex, percent) {
-  const num = parseInt(hex.replace('#', ''), 16);
-  const amt = Math.round(2.55 * percent);
-  const R = Math.max(0, Math.min(255, (num >> 16) + amt));
-  const G = Math.max(0, Math.min(255, ((num >> 8) & 0x00FF) + amt));
-  const B = Math.max(0, Math.min(255, (num & 0x0000FF) + amt));
-  return '#' + (0x1000000 + R * 0x10000 + G * 0x100 + B).toString(16).slice(1);
-}
+  const T=(id,name,foot={w:1,d:1})=>({id,name,category:'terrain',footprint:foot,kind:'terrain',sizeScale:1,builder:BUILDERS[id]});
+  const O=(cat,defaultScale=1)=>(id,name,foot={w:1,d:1},sizeScale=defaultScale)=>({id,name,category:cat,footprint:foot,kind:'object',sizeScale,builder:BUILDERS[id]});
+  const N=O('nature',0.85), P_=O('props',0.55), W=O('hazards',0.85), B=O('buildings',1);
 
-/* ── Asset loader ── */
-const assetCache = new Map();
-function getAsset(id) {
-  if (assetCache.has(id)) return assetCache.get(id);
-  const def = ASSET_INDEX[id];
-  if (!def || !def.builder) return null;
-  const voxels = def.builder();
-  const rendered = renderVoxelsToCanvas(voxels, P);
-  if (!rendered) return null;
-  const asset = {
-    id,
-    ...rendered,
-    kind: def.kind,
-    footprint: def.footprint,
-    tileLike: def.tileLike,
-    flatBase: def.flatBase,
-    noShadow: def.noShadow,
-    shadowStyle: def.shadowStyle,
-    width: rendered.width,
-    height: rendered.height,
-    displayCanvas: rendered.canvas
-  };
-  assetCache.set(id, asset);
-  return asset;
-}
+  const ASSET_MANIFEST=[
+    {...T('ash','Ash Wastes'), tileLike:true},
+    {...T('bone_floor','Bone Floor'), tileLike:true},
+    {...T('lava','Lava Flow'), tileLike:true},
+    {...T('obsidian','Obsidian'), tileLike:true},
+    {...T('moss_stone','Moss Stone'), tileLike:true},
+    {...T('blood_pool','Blood Pool'), tileLike:true},
+    {...N('dead_tree','Dead Tree',{w:1,d:1},0.70)},
+    {...N('bone_tree','Bone Tree',{w:1,d:1},0.75)},
+    {...N('mushroom_red','Blood Mushroom',{w:1,d:1},0.50)},
+    {...N('thorns','Thorn Bush',{w:1,d:1},0.55)},
+    {...N('hanging_skull','Hanging Skull',{w:1,d:1},0.40)},
+    {...P_('skull_pile','Skull Pile',{w:1,d:1},0.55)},
+    {...P_('bone_fence','Bone Fence',{w:1,d:1},0.70), flatBase:true, shadowStyle:'contact'},
+    {...P_('tombstone','Tombstone',{w:1,d:1},0.60)},
+    {...P_('coffin','Coffin',{w:1,d:1},0.60)},
+    {...P_('chains','Chains',{w:1,d:1},0.40)},
+    {...P_('torch','Wall Torch',{w:1,d:1},0.40)},
+    {...P_('spike_trap','Spike Trap',{w:1,d:1},0.90)},
+    {...P_('ribcage','Ribcage',{w:1,d:1},0.55)},
+    {...W('lava_bridge','Lava Bridge',{w:2,d:1},0.95)},
+    {...W('blood_well','Blood Well',{w:1,d:1},0.60)},
+    {...B('mausoleum','Mausoleum',{w:2,d:2})},
+    {...B('bone_tower','Bone Tower',{w:2,d:2})},
+    {...B('crypt','Grand Crypt',{w:3,d:3})},
+    {...B('altar_dark','Dark Altar',{w:2,d:2})},
+    {...B('skull_fort','Skull Fort',{w:3,d:2})},
+    {...B('necropolis_gate','Necropolis Gate',{w:2,d:1})}
+  ];
 
-/* ── TileMap ── */
-class TileMap {
-  constructor() {
-    this.width = CONFIG.grid.width;
-    this.height = CONFIG.grid.height;
-    this.terrain = new Array(this.width * this.height).fill(null);
-    this.objects = [];
-    this.nextId = 1;
-    this.terrainVersion = 0;
-    this.objectsVersion = 0;
-  }
-  inBounds(gx, gy) { return gx >= 0 && gy >= 0 && gx < this.width && gy < this.height; }
-  idx(gx, gy) { return gy * this.width + gx; }
-  getTerrain(gx, gy) { return this.inBounds(gx, gy) ? this.terrain[this.idx(gx, gy)] : null; }
-  setTerrain(gx, gy, id) {
-    if (!this.inBounds(gx, gy)) return;
-    this.terrain[this.idx(gx, gy)] = id;
-    this.terrainVersion++;
-  }
-  objectAt(gx, gy) {
-    return this.objects.find(o => gx >= o.gx && gx < o.gx + o.footprint.w && gy >= o.gy && gy < o.gy + o.footprint.d);
-  }
-  addObject(assetId, gx, gy, opts = {}) {
-    const def = ASSET_INDEX[assetId];
-    if (!def) return null;
-    // Check bounds & overlap
-    for (let ix = 0; ix < def.footprint.w; ix++)
-      for (let iy = 0; iy < def.footprint.d; iy++)
-        if (!this.inBounds(gx + ix, gy + iy) || this.objectAt(gx + ix, gy + iy)) return null;
+  const ASSET_INDEX=Object.freeze(ASSET_MANIFEST.reduce((acc,a)=>{acc[a.id]=a;return acc;},{}));
+  const CATEGORIES=['terrain','nature','props','hazards','buildings'];
 
-    const obj = {
-      id: this.nextId++,
-      assetId,
-      gx, gy,
-      footprint: { ...def.footprint },
-      flipH: !!opts.flipH,
-      flipV: !!opts.flipV,
-      sortKey() { return (this.gx + this.footprint.w - 1) + (this.gy + this.footprint.d - 1); }
-    };
-    this.objects.push(obj);
-    this.objectsVersion++;
-    return obj;
+  function cellToScreen(gx,gy){ return { x:(gx-gy)*CONFIG.tile.w/2, y:(gx+gy)*CONFIG.tile.h/2 }; }
+
+  function shadeColor(hex,percent){
+    const num=parseInt(hex.replace('#',''),16);
+    const amt=Math.round(2.55*percent);
+    const R=Math.max(0,Math.min(255,(num>>16)+amt));
+    const G=Math.max(0,Math.min(255,((num>>8)&0x00FF)+amt));
+    const B=Math.max(0,Math.min(255,(num&0x0000FF)+amt));
+    return '#'+((1<<24)+(R<<16)+(G<<8)+B).toString(16).slice(1);
   }
-  removeObject(gx, gy) {
-    const idx = this.objects.findIndex(o => gx >= o.gx && gx < o.gx + o.footprint.w && gy >= o.gy && gy < o.gy + o.footprint.d);
-    if (idx >= 0) {
-      this.objects.splice(idx, 1);
-      this.objectsVersion++;
+
+  function renderVoxelsToCanvas(voxels){
+    if(!voxels||voxels.length===0)return null;
+    let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
+    const VSIZE=CONFIG.voxel.size, VHEIGHT=CONFIG.voxel.height;
+    const projected=voxels.map(v=>{
+      const isoX=(v.x-v.y)*VSIZE/2;
+      const isoY=(v.x+v.y)*VSIZE/2-v.z*VHEIGHT;
+      return {x:isoX,y:isoY,w:VSIZE,h:VSIZE/2,c:v.c,z:v.z};
+    });
+    projected.forEach(p=>{
+      minX=Math.min(minX,p.x-p.w/2); minY=Math.min(minY,p.y-p.h/2);
+      maxX=Math.max(maxX,p.x+p.w/2); maxY=Math.max(maxY,p.y+p.h);
+    });
+    const pad=4;
+    const cw=Math.ceil(maxX-minX+pad*2);
+    const ch=Math.ceil(maxY-minY+pad*2);
+    const c=document.createElement('canvas');
+    c.width=cw; c.height=ch;
+    const ctx=c.getContext('2d');
+    projected.sort((a,b)=>(a.z-b.z)||(a.y-b.y)||(a.x-b.x));
+    projected.forEach(p=>{
+      const cx=p.x-minX+pad, cy=p.y-minY+pad;
+      const hw=p.w/2, hh=p.h/2;
+      ctx.beginPath();
+      ctx.moveTo(cx,cy-hh); ctx.lineTo(cx+hw,cy); ctx.lineTo(cx,cy+hh); ctx.lineTo(cx-hw,cy);
+      ctx.closePath(); ctx.fillStyle=p.c; ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(cx-hw,cy); ctx.lineTo(cx,cy+hh); ctx.lineTo(cx,cy+hh+VHEIGHT); ctx.lineTo(cx-hw,cy+VHEIGHT);
+      ctx.closePath(); ctx.fillStyle=shadeColor(p.c,-20); ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(cx+hw,cy); ctx.lineTo(cx,cy+hh); ctx.lineTo(cx,cy+hh+VHEIGHT); ctx.lineTo(cx+hw,cy+VHEIGHT);
+      ctx.closePath(); ctx.fillStyle=shadeColor(p.c,-35); ctx.fill();
+    });
+    return {canvas:c,width:cw,height:ch,anchorX:-minX+pad,anchorY:-minY+pad};
+  }
+
+  const assetCache=new Map();
+  function getAsset(id){
+    if(assetCache.has(id))return assetCache.get(id);
+    const def=ASSET_INDEX[id];
+    if(!def||!def.builder)return null;
+    try{
+      const voxels=def.builder();
+      const rendered=renderVoxelsToCanvas(voxels);
+      if(!rendered)return null;
+      const asset={id,...rendered,kind:def.kind,footprint:def.footprint,tileLike:def.tileLike,flatBase:def.flatBase,noShadow:def.noShadow,shadowStyle:def.shadowStyle,displayCanvas:rendered.canvas};
+      assetCache.set(id,asset);
+      return asset;
+    }catch(err){
+      console.error('Asset build error',id,err);
+      return null;
+    }
+  }
+
+  class TileMap{
+    constructor(){ this.width=CONFIG.grid.width; this.height=CONFIG.grid.height; this.terrain=new Array(this.width*this.height).fill(null); this.objects=[]; this.nextId=1; this.terrainVersion=0; this.objectsVersion=0; }
+    inBounds(gx,gy){return gx>=0&&gy>=0&&gx<this.width&&gy<this.height;}
+    idx(gx,gy){return gy*this.width+gx;}
+    getTerrain(gx,gy){return this.inBounds(gx,gy)?this.terrain[this.idx(gx,gy)]:null;}
+    setTerrain(gx,gy,id){if(this.inBounds(gx,gy)){this.terrain[this.idx(gx,gy)]=id; this.terrainVersion++;}}
+    objectAt(gx,gy){return this.objects.find(o=>gx>=o.gx&&gx<o.gx+o.footprint.w&&gy>=o.gy&&gy<o.gy+o.footprint.d);}
+    addObject(assetId,gx,gy,opts={}){
+      const def=ASSET_INDEX[assetId]; if(!def)return null;
+      for(let ix=0;ix<def.footprint.w;ix++)for(let iy=0;iy<def.footprint.d;iy++)if(!this.inBounds(gx+ix,gy+iy)||this.objectAt(gx+ix,gy+iy))return null;
+      const obj={id:this.nextId++,assetId,gx,gy,footprint:{...def.footprint},flipH:!!opts.flipH,flipV:!!opts.flipV,sortKey(){return(this.gx+this.footprint.w-1)+(this.gy+this.footprint.d-1);}};
+      this.objects.push(obj); this.objectsVersion++; return obj;
+    }
+    removeObject(gx,gy){
+      const idx=this.objects.findIndex(o=>gx>=o.gx&&gx<o.gx+o.footprint.w&&gy>=o.gy&&gy<o.gy+o.footprint.d);
+      if(idx>=0){this.objects.splice(idx,1); this.objectsVersion++; return true;} return false;
+    }
+    clearAll(){this.terrain.fill(null); this.objects=[]; this.terrainVersion++; this.objectsVersion++;}
+  }
+
+  class Camera{
+    constructor(){this.offsetX=0;this.offsetY=0;this.zoom=CONFIG.camera.defaultZoom;this._onChange=null;}
+    onChange(cb){this._onChange=cb;}
+    _notify(){if(this._onChange)this._onChange();}
+    screenToWorld(sx,sy){return{x:(sx-this.offsetX)/this.zoom,y:(sy-this.offsetY)/this.zoom};}
+    pan(dx,dy){if(dx||dy){this.offsetX+=dx;this.offsetY+=dy;this._notify();}}
+    zoomAt(sx,sy,factor){
+      const next=Math.max(CONFIG.camera.minZoom,Math.min(CONFIG.camera.maxZoom,this.zoom*factor));
+      if(next===this.zoom)return;
+      const before=this.screenToWorld(sx,sy); this.zoom=next; const after=this.screenToWorld(sx,sy);
+      this.offsetX+=(after.x-before.x)*this.zoom; this.offsetY+=(after.y-before.y)*this.zoom; this._notify();
+    }
+    centerOn(wx,wy,cw,ch){this.offsetX=cw/2-wx*this.zoom;this.offsetY=ch/2-wy*this.zoom;this._notify();}
+  }
+
+  class Renderer{
+    constructor(canvas,camera,tileMap){
+      this.canvas=canvas; this.ctx=canvas.getContext('2d',{alpha:true});
+      this.camera=camera; this.tileMap=tileMap;
+      this.showGrid=false; this.hoverCell=null; this.previewAssetId=null; this.previewValid=true; this.eraseMode=false; this.previewFlipH=false; this.previewFlipV=false;
+      this._dirty=true; this._terrainCanvas=null; this._terrainVersion=-1; this._objectsCanvas=null; this._objectsVersion=-1; this._worldBounds=null;
+      this._anims=new Map(); this._frameAnims=new Map();
+      this.resize(); window.addEventListener('resize',()=>this.resize());
+    }
+    markDirty(){this._dirty=true;}
+    spawnAnim(key,cell=null,duration=460,startAt=performance.now()){
+      this._anims.set(key,{start:startAt,duration,cell});
+      if(key.startsWith('obj-'))this._objectsVersion=-1;
+      else if(key.startsWith('t-'))this._terrainVersion=-1;
+      this._dirty=true;
+    }
+    _snapshotAnims(){
+      const now=performance.now(); this._frameAnims.clear(); let removed=false;
+      for(const [key,a] of this._anims){
+        const t=(now-a.start)/a.duration;
+        if(t>=1){this._anims.delete(key); removed=true; continue;}
+        if(t<0)continue;
+        this._frameAnims.set(key,{t,cell:a.cell});
+      }
+      if(removed){this._objectsVersion=-1;this._terrainVersion=-1;this._dirty=true;}
+    }
+    _easeOutElastic(t){if(t<=0)return 0; if(t>=1)return 1; const c4=(2*Math.PI)/3; return Math.pow(2,-10*t)*Math.sin((t*10-0.75)*c4)+1;}
+    resize(){
+      const dpr=window.devicePixelRatio||1;
+      const w=window.innerWidth,h=window.innerHeight;
+      this.canvas.width=w*dpr; this.canvas.height=h*dpr;
+      this.canvas.style.width=w+'px'; this.canvas.style.height=h+'px';
+      this.ctx.setTransform(dpr,0,0,dpr,0,0);
+      this.ctx.imageSmoothingEnabled=true; this.ctx.imageSmoothingQuality='high';
+      this._worldBounds=null; this._terrainCanvas=null; this._objectsCanvas=null; this._dirty=true;
+    }
+    _computeWorldBounds(){
+      const W=this.tileMap.width,H=this.tileMap.height;
+      const corners=[cellToScreen(0,0),cellToScreen(W,0),cellToScreen(W,H),cellToScreen(0,H)];
+      let minX=Infinity,maxX=-Infinity,minY=Infinity,maxY=-Infinity;
+      for(const c of corners){minX=Math.min(minX,c.x);maxX=Math.max(maxX,c.x);minY=Math.min(minY,c.y);maxY=Math.max(maxY,c.y);}
+      const padX=320,padTop=600,padBottom=200;
+      return {x:Math.floor(minX-padX),y:Math.floor(minY-padTop),w:Math.ceil(maxX-minX+padX*2),h:Math.ceil(maxY-minY+padTop+padBottom)};
+    }
+    _ensureWorldBounds(){if(!this._worldBounds)this._worldBounds=this._computeWorldBounds(); return this._worldBounds;}
+    _ensureTerrainCache(){
+      if(this._terrainCanvas&&this._terrainVersion===this.tileMap.terrainVersion)return;
+      const wb=this._ensureWorldBounds();
+      const c=document.createElement('canvas'); c.width=wb.w; c.height=wb.h;
+      const ctx=c.getContext('2d'); ctx.translate(-wb.x,-wb.y);
+      for(let gy=0;gy<this.tileMap.height;gy++)for(let gx=0;gx<this.tileMap.width;gx++){
+        const id=this.tileMap.getTerrain(gx,gy); if(!id)continue;
+        const asset=getAsset(id); if(!asset)continue;
+        const {x,y}=cellToScreen(gx,gy);
+        ctx.drawImage(asset.displayCanvas,x-asset.anchorX,y-asset.anchorY);
+      }
+      this._terrainCanvas=c; this._terrainVersion=this.tileMap.terrainVersion;
+    }
+    _ensureObjectsCache(){
+      const tm=this.tileMap;
+      if(this._objectsCanvas&&this._objectsVersion===tm.objectsVersion)return;
+      const wb=this._ensureWorldBounds();
+      const c=document.createElement('canvas'); c.width=wb.w; c.height=wb.h;
+      const ctx=c.getContext('2d'); ctx.translate(-wb.x,-wb.y);
+      const drawables=[...tm.objects].sort((a,b)=>a.sortKey()-b.sortKey());
+      for(const obj of drawables){
+        const asset=getAsset(obj.assetId); if(!asset)continue;
+        const {x,y}=cellToScreen(obj.gx,obj.gy);
+        const dx=x-asset.anchorX, dy=y-asset.anchorY;
+        if(!obj.flipH&&!obj.flipV){ctx.drawImage(asset.displayCanvas,dx,dy); continue;}
+        const pivot=cellToScreen(obj.gx+obj.footprint.w/2,obj.gy+obj.footprint.d/2);
+        ctx.save(); ctx.translate(pivot.x,pivot.y); ctx.scale(obj.flipH?-1:1,obj.flipV?-1:1); ctx.translate(-pivot.x,-pivot.y);
+        ctx.drawImage(asset.displayCanvas,dx,dy); ctx.restore();
+      }
+      this._objectsCanvas=c; this._objectsVersion=tm.objectsVersion;
+    }
+    _drawGrid(){
+      const ctx=this.ctx; ctx.save(); ctx.lineWidth=1/this.camera.zoom; ctx.strokeStyle='rgba(212,74,58,0.15)';
+      ctx.beginPath();
+      for(let g=0;g<=this.tileMap.width;g++){const a=cellToScreen(g,0),b=cellToScreen(g,this.tileMap.height); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y);}
+      for(let g=0;g<=this.tileMap.height;g++){const a=cellToScreen(0,g),b=cellToScreen(this.tileMap.width,g); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y);}
+      ctx.stroke(); ctx.restore();
+    }
+    _drawHover(){
+      if(!this.hoverCell)return;
+      const {gx,gy}=this.hoverCell; const ctx=this.ctx; ctx.save();
+      const previewAsset=this.previewAssetId?ASSET_INDEX[this.previewAssetId]:null;
+      const fp=previewAsset?.footprint??{w:1,d:1};
+      const valid=this.previewValid;
+      const stroke=this.eraseMode?'rgba(212,74,58,0.9)':(valid?'rgba(212,74,58,0.7)':'rgba(138,28,28,0.8)');
+      const fill=this.eraseMode?'rgba(212,74,58,0.12)':(valid?'rgba(212,74,58,0.10)':'rgba(138,28,28,0.12)');
+      ctx.lineWidth=2/this.camera.zoom; ctx.strokeStyle=stroke; ctx.fillStyle=fill;
+      for(let ix=0;ix<fp.w;ix++)for(let iy=0;iy<fp.d;iy++){
+        const cx=gx+ix,cy=gy+iy; if(!this.tileMap.inBounds(cx,cy))continue;
+        const a=cellToScreen(cx,cy),b=cellToScreen(cx+1,cy),c_=cellToScreen(cx+1,cy+1),d=cellToScreen(cx,cy+1);
+        ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); ctx.lineTo(c_.x,c_.y); ctx.lineTo(d.x,d.y); ctx.closePath(); ctx.fill(); ctx.stroke();
+      }
+      ctx.restore();
+    }
+    _drawPreview(){
+      if(!this.hoverCell||!this.previewAssetId||this.eraseMode)return;
+      const asset=getAsset(this.previewAssetId); if(!asset)return;
+      const {gx,gy}=this.hoverCell; const {x,y}=cellToScreen(gx,gy);
+      const dx=x-asset.anchorX, dy=y-asset.anchorY;
+      this.ctx.save(); this.ctx.globalAlpha=this.previewValid?0.35:0.22;
+      const def=ASSET_INDEX[this.previewAssetId];
+      if(def&&def.kind==='object'&&(this.previewFlipH||this.previewFlipV)){
+        const fp=def.footprint; const pivot=cellToScreen(gx+fp.w/2,gy+fp.d/2);
+        this.ctx.translate(pivot.x,pivot.y); this.ctx.scale(this.previewFlipH?-1:1,this.previewFlipV?-1:1); this.ctx.translate(-pivot.x,-pivot.y);
+      }
+      this.ctx.drawImage(asset.displayCanvas,dx,dy); this.ctx.restore();
+    }
+    _drawAnims(){
+      for(const [key,entry] of this._frameAnims){
+        const t=entry.t, s=this._easeOutElastic(t);
+        if(key.startsWith('obj-')){
+          const id=+key.slice(4); const obj=this.tileMap.objects.find(o=>o.id===id); if(!obj)continue;
+          const asset=getAsset(obj.assetId); if(!asset)continue;
+          const {x,y}=cellToScreen(obj.gx,obj.gy); const dx=x-asset.anchorX, dy=y-asset.anchorY;
+          const fp=obj.footprint; const pivot=cellToScreen(obj.gx+fp.w/2,obj.gy+fp.d/2);
+          this.ctx.save(); this.ctx.globalAlpha*=Math.min(1,t*1.6); this.ctx.translate(pivot.x,pivot.y); this.ctx.scale(s,s); this.ctx.translate(-pivot.x,-pivot.y);
+          if(!obj.flipH&&!obj.flipV){this.ctx.drawImage(asset.displayCanvas,dx,dy);}else{
+            this.ctx.translate(pivot.x,pivot.y); this.ctx.scale(obj.flipH?-1:1,obj.flipV?-1:1); this.ctx.translate(-pivot.x,-pivot.y);
+            this.ctx.drawImage(asset.displayCanvas,dx,dy);
+          }
+          this.ctx.restore();
+        }else if(key.startsWith('t-')){
+          const parts=key.slice(2).split(','); const gx=+parts[0],gy=+parts[1];
+          const id=this.tileMap.getTerrain(gx,gy); if(!id)continue;
+          const asset=getAsset(id); if(!asset)continue;
+          const {x,y}=cellToScreen(gx,gy); const dx=x-asset.anchorX, dy=y-asset.anchorY;
+          const pivot=cellToScreen(gx+0.5,gy+0.5);
+          this.ctx.save(); this.ctx.globalAlpha*=Math.min(1,t*1.6); this.ctx.translate(pivot.x,pivot.y); this.ctx.scale(s,s); this.ctx.translate(-pivot.x,-pivot.y);
+          this.ctx.drawImage(asset.displayCanvas,dx,dy); this.ctx.restore();
+        }
+      }
+    }
+    draw(){
+      this._snapshotAnims();
+      const pending=this._anims.size>0;
+      if(!this._dirty&&!pending)return; this._dirty=false;
+      const ctx=this.ctx; const w=window.innerWidth,h=window.innerHeight;
+      ctx.clearRect(0,0,w,h); ctx.fillStyle='#121212'; ctx.fillRect(0,0,w,h);
+      ctx.save(); this._applyCamera();
+      this._ensureTerrainCache(); this._ensureObjectsCache();
+      const wb=this._ensureWorldBounds();
+      if(this._terrainCanvas)ctx.drawImage(this._terrainCanvas,wb.x,wb.y);
+      if(this.showGrid)this._drawGrid();
+      if(this._objectsCanvas)ctx.drawImage(this._objectsCanvas,wb.x,wb.y);
+      this._drawAnims(); this._drawPreview(); this._drawHover();
+      ctx.restore();
+    }
+    _applyCamera(){this.ctx.translate(this.camera.offsetX,this.camera.offsetY); this.ctx.scale(this.camera.zoom,this.camera.zoom);}
+  }
+
+  class InputManager{
+    constructor(canvas,camera,game){
+      this.canvas=canvas; this.camera=camera; this.game=game; this._panning=false; this._lastPan=null; this._brush=false; this._brushErase=false;
+      canvas.addEventListener('pointerdown',e=>this._onDown(e));
+      window.addEventListener('pointermove',e=>this._onMove(e));
+      window.addEventListener('pointerup',e=>this._onUp(e));
+      canvas.addEventListener('wheel',e=>this._onWheel(e),{passive:false});
+      window.addEventListener('keydown',e=>this._onKey(e));
+    }
+    _eventPos(e){const rect=this.canvas.getBoundingClientRect(); return{x:e.clientX-rect.left,y:e.clientY-rect.top};}
+    _cellAt(sx,sy){const w=this.camera.screenToWorld(sx,sy); const TW=CONFIG.tile.w,TH=CONFIG.tile.h; const gx=Math.floor((w.x/(TW/2)+w.y/(TH/2))/2); const gy=Math.floor((w.y/(TH/2)-w.x/(TW/2))/2); return{gx,gy};}
+    _onDown(e){
+      if(e.button===1||(e.button===0&&e.shiftKey)){this._panning=true;this._lastPan=this._eventPos(e);e.preventDefault();return;}
+      if(e.button===2){this._brushErase=true;this._brush=true;this._paint(this._eventPos(e));e.preventDefault();return;}
+      if(e.button===0){this._brush=true; if(this.game.tool==='pan'){this._panning=true;this._lastPan=this._eventPos(e);return;} if(this.game.tool==='erase')this._brushErase=true; this._paint(this._eventPos(e));}
+    }
+    _onMove(e){const pos=this._eventPos(e); const cell=this._cellAt(pos.x,pos.y); this.game.onHover(cell); if(this._panning&&this._lastPan){const dx=pos.x-this._lastPan.x,dy=pos.y-this._lastPan.y;this.camera.pan(dx,dy);this._lastPan=pos;}else if(this._brush){this._paint(pos);}}
+    _onUp(e){this._panning=false;this._lastPan=null;this._brush=false;this._brushErase=false;}
+    _onWheel(e){e.preventDefault(); const pos=this._eventPos(e); const factor=e.deltaY<0?1.08:0.92; this.camera.zoomAt(pos.x,pos.y,factor);}
+    _onKey(e){if(e.key==='e'||e.key==='E')this.game.toggleTool('erase'); if(e.key==='g'||e.key==='G')this.game.toggleGrid(); if(e.key==='h'||e.key==='H')this.game.toggleFlipH(); if(e.key==='v'||e.key==='V')this.game.toggleFlipV(); if(e.key==='1')this.game.setCategory('terrain'); if(e.key==='2')this.game.setCategory('nature'); if(e.key==='3')this.game.setCategory('props'); if(e.key==='4')this.game.setCategory('hazards'); if(e.key==='5')this.game.setCategory('buildings'); if(e.key==='r'||e.key==='R'){if(confirm('Reset world?'))this.game.reset();}}
+    _paint(pos){const cell=this._cellAt(pos.x,pos.y); if(this._brushErase)this.game.onSecondaryClick(cell.gx,cell.gy); else this.game.onPrimaryClick(cell.gx,cell.gy);}
+  }
+
+  class PlacementSystem{
+    constructor(tileMap){this.tileMap=tileMap;}
+    canPlace(assetId,gx,gy){
+      const def=ASSET_INDEX[assetId]; if(!def)return false;
+      if(def.kind==='terrain')return this.tileMap.inBounds(gx,gy);
+      for(let ix=0;ix<def.footprint.w;ix++)for(let iy=0;iy<def.footprint.d;iy++)if(!this.tileMap.inBounds(gx+ix,gy+iy)||this.tileMap.objectAt(gx+ix,gy+iy))return false;
       return true;
     }
-    return false;
-  }
-  clearAll() {
-    this.terrain.fill(null);
-    this.objects = [];
-    this.terrainVersion++;
-    this.objectsVersion++;
-  }
-}
-
-/* ── Camera ── */
-class Camera {
-  constructor() {
-    this.offsetX = 0; this.offsetY = 0;
-    this.zoom = CONFIG.camera.defaultZoom;
-    this._onChange = null;
-  }
-  onChange(cb) { this._onChange = cb; }
-  _notify() { if (this._onChange) this._onChange(); }
-  screenToWorld(sx, sy) { return { x: (sx - this.offsetX) / this.zoom, y: (sy - this.offsetY) / this.zoom }; }
-  pan(dx, dy) { if (dx || dy) { this.offsetX += dx; this.offsetY += dy; this._notify(); } }
-  zoomAt(sx, sy, factor) {
-    const next = Math.max(CONFIG.camera.minZoom, Math.min(CONFIG.camera.maxZoom, this.zoom * factor));
-    if (next === this.zoom) return;
-    const before = this.screenToWorld(sx, sy);
-    this.zoom = next;
-    const after = this.screenToWorld(sx, sy);
-    this.offsetX += (after.x - before.x) * this.zoom;
-    this.offsetY += (after.y - before.y) * this.zoom;
-    this._notify();
-  }
-  centerOn(wx, wy, cw, ch) {
-    this.offsetX = cw / 2 - wx * this.zoom;
-    this.offsetY = ch / 2 - wy * this.zoom;
-    this._notify();
-  }
-}
-
-/* ── Renderer (simplified layered cache) ── */
-class Renderer {
-  constructor(canvas, camera, tileMap) {
-    this.canvas = canvas; this.ctx = canvas.getContext('2d', { alpha: true });
-    this.camera = camera; this.tileMap = tileMap;
-    this.showGrid = false;
-    this.hoverCell = null;
-    this.previewAssetId = null;
-    this.previewValid = true;
-    this.eraseMode = false;
-    this.previewFlipH = false; this.previewFlipV = false;
-
-    this._dirty = true;
-    this._terrainCanvas = null; this._terrainVersion = -1;
-    this._objectsCanvas = null; this._objectsVersion = -1;
-    this._worldBounds = null;
-
-    this._anims = new Map();
-    this._frameAnims = new Map();
-
-    this.resize();
-    window.addEventListener('resize', () => this.resize());
-  }
-  markDirty() { this._dirty = true; }
-
-  spawnAnim(key, cell = null, duration = 460, startAt = performance.now()) {
-    this._anims.set(key, { start: startAt, duration, cell });
-    if (key.startsWith('obj-')) this._objectsVersion = -1;
-    else if (key.startsWith('t-')) this._terrainVersion = -1;
-    this._dirty = true;
-  }
-
-  _snapshotAnims() {
-    const now = performance.now();
-    this._frameAnims.clear();
-    let removed = false;
-    for (const [key, a] of this._anims) {
-      const t = (now - a.start) / a.duration;
-      if (t >= 1) { this._anims.delete(key); removed = true; continue; }
-      if (t < 0) continue;
-      this._frameAnims.set(key, { t, cell: a.cell });
+    place(assetId,gx,gy,opts={}){
+      const def=ASSET_INDEX[assetId]; if(!def||!this.canPlace(assetId,gx,gy))return null;
+      if(def.kind==='terrain'){this.tileMap.setTerrain(gx,gy,assetId); return{kind:'terrain',assetId,gx,gy};}
+      const obj=this.tileMap.addObject(assetId,gx,gy,opts); return obj?{kind:'object',object:obj}:null;
     }
-    if (removed) { this._objectsVersion = -1; this._terrainVersion = -1; this._dirty = true; }
+    erase(gx,gy){if(this.tileMap.removeObject(gx,gy))return true; if(this.tileMap.getTerrain(gx,gy)){this.tileMap.setTerrain(gx,gy,null); return true;} return false;}
   }
 
-  _easeOutElastic(t) {
-    if (t <= 0) return 0; if (t >= 1) return 1;
-    const c4 = (2 * Math.PI) / 3;
-    return Math.pow(2, -10 * t) * Math.sin((t * 10 - 0.75) * c4) + 1;
-  }
-
-  resize() {
-    const dpr = window.devicePixelRatio || 1;
-    const w = window.innerWidth, h = window.innerHeight;
-    this.canvas.width = w * dpr; this.canvas.height = h * dpr;
-    this.canvas.style.width = w + 'px'; this.canvas.style.height = h + 'px';
-    this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    this.ctx.imageSmoothingEnabled = true;
-    this.ctx.imageSmoothingQuality = 'high';
-    this._worldBounds = null;
-    this._terrainCanvas = null; this._objectsCanvas = null;
-    this._dirty = true;
-  }
-
-  _computeWorldBounds() {
-    const W = this.tileMap.width, H = this.tileMap.height;
-    const corners = [cellToScreen(0,0), cellToScreen(W,0), cellToScreen(W,H), cellToScreen(0,H)];
-    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-    for (const c of corners) {
-      minX = Math.min(minX, c.x); maxX = Math.max(maxX, c.x);
-      minY = Math.min(minY, c.y); maxY = Math.max(maxY, c.y);
+  class Game{
+    constructor(canvas){
+      this.canvas=canvas; this.tileMap=new TileMap(); this.camera=new Camera(); this.renderer=new Renderer(canvas,this.camera,this.tileMap); this.placement=new PlacementSystem(this.tileMap); this.input=new InputManager(canvas,this.camera,this);
+      this.camera.onChange(()=>this.renderer.markDirty());
+      this.tool='place'; this.category='terrain'; this.selectedAssetId=ASSET_MANIFEST.find(a=>a.category==='terrain').id; this.flipH=false; this.flipV=false;
+      this._centerCamera(); this._loop=this._loop.bind(this); requestAnimationFrame(this._loop);
     }
-    const padX = 320, padTop = 600, padBottom = 200;
-    return {
-      x: Math.floor(minX - padX),
-      y: Math.floor(minY - padTop),
-      w: Math.ceil(maxX - minX + padX * 2),
-      h: Math.ceil(maxY - minY + padTop + padBottom)
-    };
-  }
-
-  _ensureWorldBounds() {
-    if (!this._worldBounds) this._worldBounds = this._computeWorldBounds();
-    return this._worldBounds;
-  }
-
-  _ensureTerrainCache() {
-    if (this._terrainCanvas && this._terrainVersion === this.tileMap.terrainVersion) return;
-    const wb = this._ensureWorldBounds();
-    const c = document.createElement('canvas');
-    c.width = wb.w; c.height = wb.h;
-    const ctx = c.getContext('2d');
-    ctx.translate(-wb.x, -wb.y);
-
-    for (let gy = 0; gy < this.tileMap.height; gy++)
-      for (let gx = 0; gx < this.tileMap.width; gx++) {
-        const id = this.tileMap.getTerrain(gx, gy);
-        if (!id) continue;
-        const asset = getAsset(id);
-        if (!asset) continue;
-        const { x, y } = cellToScreen(gx, gy);
-        ctx.drawImage(asset.displayCanvas, x - asset.anchorX, y - asset.anchorY);
-      }
-
-    this._terrainCanvas = c;
-    this._terrainVersion = this.tileMap.terrainVersion;
-  }
-
-  _ensureObjectsCache() {
-    const tm = this.tileMap;
-    if (this._objectsCanvas && this._objectsVersion === tm.objectsVersion) return;
-    const wb = this._ensureWorldBounds();
-    const c = document.createElement('canvas');
-    c.width = wb.w; c.height = wb.h;
-    const ctx = c.getContext('2d');
-    ctx.translate(-wb.x, -wb.y);
-
-    const drawables = [...tm.objects].sort((a, b) => a.sortKey() - b.sortKey());
-    for (const obj of drawables) {
-      const asset = getAsset(obj.assetId);
-      if (!asset) continue;
-      const { x, y } = cellToScreen(obj.gx, obj.gy);
-      const dx = x - asset.anchorX;
-      const dy = y - asset.anchorY;
-      this._drawAssetImage(ctx, asset, dx, dy, obj);
+    _centerCamera(){const c=cellToScreen(this.tileMap.width/2,this.tileMap.height/2); this.camera.centerOn(c.x,c.y,window.innerWidth,window.innerHeight);}
+    setTool(t){this.tool=t; this.renderer.eraseMode=(t==='erase'); this.canvas.style.cursor=t==='pan'?'grab':'crosshair'; this.renderer.markDirty();}
+    toggleTool(t){this.setTool(this.tool===t?'place':t);}
+    setCategory(cat){if(this.category===cat)return; this.category=cat; const first=ASSET_MANIFEST.find(a=>a.category===cat); if(first)this.selectedAssetId=first.id; this._resetFlip(); this.renderer.markDirty(); if(this.uiUpdate)this.uiUpdate();}
+    selectAsset(id){const a=ASSET_INDEX[id]; if(!a)return; this.selectedAssetId=id; this.category=a.category; if(this.tool==='erase')this.setTool('place'); this._resetFlip(); this.renderer.markDirty(); if(this.uiUpdate)this.uiUpdate();}
+    toggleFlipH(){this.flipH=!this.flipH; this._syncFlip(); this.renderer.markDirty();}
+    toggleFlipV(){this.flipV=!this.flipV; this._syncFlip(); this.renderer.markDirty();}
+    _resetFlip(){this.flipH=false; this.flipV=false; this._syncFlip();}
+    _syncFlip(){this.renderer.previewFlipH=this.flipH; this.renderer.previewFlipV=this.flipV;}
+    toggleGrid(){this.renderer.showGrid=!this.renderer.showGrid; this.renderer.markDirty();}
+    reset(){this.tileMap.clearAll(); this._centerCamera(); this.renderer.markDirty(); showToast('World consumed by void');}
+    fillAsh(){
+      const W=this.tileMap.width,H=this.tileMap.height; let filled=0;
+      for(let gy=0;gy<H;gy++)for(let gx=0;gx<W;gx++){if(this.tileMap.getTerrain(gx,gy))continue; if(this.placeAndAnimate('ash',gx,gy,{delay:(gx+gy)*32}))filled++;}
+      if(filled>0)showToast('Covered '+filled+' tiles in ash'); else showToast('Grid already scorched'); return filled;
     }
-
-    this._objectsCanvas = c;
-    this._objectsVersion = tm.objectsVersion;
-  }
-
-  _drawAssetImage(ctx, asset, dx, dy, obj) {
-    if (!obj.flipH && !obj.flipV) {
-      ctx.drawImage(asset.displayCanvas, dx, dy);
-      return;
+    onHover(cell){
+      const prev=this.renderer.hoverCell; const same=prev&&prev.gx===cell.gx&&prev.gy===cell.gy;
+      this.renderer.hoverCell=cell;
+      if(this.tool==='erase'){this.renderer.previewAssetId=null; this.renderer.previewValid=!!this.tileMap.objectAt(cell.gx,cell.gy)||!!this.tileMap.getTerrain(cell.gx,cell.gy);}
+      else if(this.tool==='place'){this.renderer.previewAssetId=this.selectedAssetId; this.renderer.previewValid=this.placement.canPlace(this.selectedAssetId,cell.gx,cell.gy);}
+      else{this.renderer.previewAssetId=null; this.renderer.previewValid=true;}
+      if(!same)this.renderer.markDirty();
     }
-    const { x, y } = cellToScreen(obj.gx + obj.footprint.w / 2, obj.gy + obj.footprint.d / 2);
-    ctx.save();
-    ctx.translate(x, y);
-    ctx.scale(obj.flipH ? -1 : 1, obj.flipV ? -1 : 1);
-    ctx.translate(-x, -y);
-    ctx.drawImage(asset.displayCanvas, dx, dy);
-    ctx.restore();
-  }
-
-  _drawGrid() {
-    const ctx = this.ctx;
-    ctx.save();
-    ctx.lineWidth = 1 / this.camera.zoom;
-    ctx.strokeStyle = 'rgba(212,74,58,0.15)';
-    ctx.beginPath();
-    for (let g = 0; g <= this.tileMap.width; g++) {
-      const a = cellToScreen(g, 0), b = cellToScreen(g, this.tileMap.height);
-      ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y);
-    }
-    for (let g = 0; g <= this.tileMap.height; g++) {
-      const a = cellToScreen(0, g), b = cellToScreen(this.tileMap.width, g);
-      ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y);
-    }
-    ctx.stroke();
-    ctx.restore();
-  }
-
-  _drawHover() {
-    if (!this.hoverCell) return;
-    const { gx, gy } = this.hoverCell;
-    const ctx = this.ctx;
-    ctx.save();
-    const previewAsset = this.previewAssetId ? ASSET_INDEX[this.previewAssetId] : null;
-    const fp = previewAsset?.footprint ?? { w: 1, d: 1 };
-    const valid = this.previewValid;
-    const stroke = this.eraseMode ? 'rgba(212,74,58,0.9)' : (valid ? 'rgba(212,74,58,0.7)' : 'rgba(138,28,28,0.8)');
-    const fill = this.eraseMode ? 'rgba(212,74,58,0.12)' : (valid ? 'rgba(212,74,58,0.10)' : 'rgba(138,28,28,0.12)');
-
-    ctx.lineWidth = 2 / this.camera.zoom;
-    ctx.strokeStyle = stroke; ctx.fillStyle = fill;
-    for (let ix = 0; ix < fp.w; ix++)
-      for (let iy = 0; iy < fp.d; iy++) {
-        const cx = gx + ix, cy = gy + iy;
-        if (!this.tileMap.inBounds(cx, cy)) continue;
-        const a = cellToScreen(cx, cy), b = cellToScreen(cx + 1, cy);
-        const c_ = cellToScreen(cx + 1, cy + 1), d = cellToScreen(cx, cy + 1);
-        ctx.beginPath();
-        ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y);
-        ctx.lineTo(c_.x, c_.y); ctx.lineTo(d.x, d.y);
-        ctx.closePath(); ctx.fill(); ctx.stroke();
-      }
-    ctx.restore();
-  }
-
-  _drawPreview() {
-    if (!this.hoverCell || !this.previewAssetId || this.eraseMode) return;
-    const asset = getAsset(this.previewAssetId);
-    if (!asset) return;
-    const { gx, gy } = this.hoverCell;
-    const { x, y } = cellToScreen(gx, gy);
-    const dx = x - asset.anchorX;
-    const dy = y - asset.anchorY;
-    this.ctx.save();
-    this.ctx.globalAlpha = this.previewValid ? 0.35 : 0.22;
-    const def = ASSET_INDEX[this.previewAssetId];
-    if (def && def.kind === 'object') {
-      const fp = def.footprint;
-      const pivot = cellToScreen(gx + fp.w / 2, gy + fp.d / 2);
-      if (this.previewFlipH || this.previewFlipV) {
-        this.ctx.translate(pivot.x, pivot.y);
-        this.ctx.scale(this.previewFlipH ? -1 : 1, this.previewFlipV ? -1 : 1);
-        this.ctx.translate(-pivot.x, -pivot.y);
+    onPrimaryClick(gx,gy){
+      if(!this.tileMap.inBounds(gx,gy))return;
+      if(this.tool==='erase'){if(this.placement.erase(gx,gy))this.renderer.markDirty();}
+      else if(this.tool==='place'){
+        const result=this.placement.place(this.selectedAssetId,gx,gy,{flipH:this.flipH,flipV:this.flipV});
+        if(result?.kind==='object'){const o=result.object; this.renderer.spawnAnim('obj-'+o.id,{gx:o.gx,gy:o.gy,w:o.footprint.w,d:o.footprint.d});}
+        else if(result?.kind==='terrain'){this.renderer.spawnAnim('t-'+result.gx+','+result.gy,{gx:result.gx,gy:result.gy,w:1,d:1});}
       }
     }
-    this.ctx.drawImage(asset.displayCanvas, dx, dy);
-    this.ctx.restore();
+    onSecondaryClick(gx,gy){if(!this.tileMap.inBounds(gx,gy))return; if(this.placement.erase(gx,gy))this.renderer.markDirty();}
+    placeAndAnimate(assetId,gx,gy,opts={}){
+      const result=this.placement.place(assetId,gx,gy,{flipH:!!opts.flipH,flipV:!!opts.flipV}); if(!result)return null;
+      const start=performance.now()+(opts.delay||0); const dur=opts.duration||460;
+      if(result.kind==='object'){const o=result.object; this.renderer.spawnAnim('obj-'+o.id,{gx:o.gx,gy:o.gy,w:o.footprint.w,d:o.footprint.d},dur,start);}
+      else if(result.kind==='terrain'){this.renderer.spawnAnim('t-'+result.gx+','+result.gy,{gx:result.gx,gy:result.gy,w:1,d:1},dur,start);}
+      return result;
+    }
+    _loop(){this.renderer.draw(); requestAnimationFrame(this._loop);}
   }
 
-  _drawAnims() {
-    for (const [key, entry] of this._frameAnims) {
-      const t = entry.t;
-      const s = this._easeOutElastic(t);
-      if (key.startsWith('obj-')) {
-        const id = +key.slice(4);
-        const obj = this.tileMap.objects.find(o => o.id === id);
-        if (!obj) continue;
-        const asset = getAsset(obj.assetId);
-        if (!asset) continue;
-        const { x, y } = cellToScreen(obj.gx, obj.gy);
-        const dx = x - asset.anchorX;
-        const dy = y - asset.anchorY;
-        const fp = obj.footprint;
-        const pivot = cellToScreen(obj.gx + fp.w / 2, obj.gy + fp.d / 2);
-        this.ctx.save();
-        this.ctx.globalAlpha *= Math.min(1, t * 1.6);
-        this.ctx.translate(pivot.x, pivot.y);
-        this.ctx.scale(s, s);
-        this.ctx.translate(-pivot.x, -pivot.y);
-        this._drawAssetImage(this.ctx, asset, dx, dy, obj);
-        this.ctx.restore();
-      } else if (key.startsWith('t-')) {
-        const parts = key.slice(2).split(',');
-        const gx = +parts[0], gy = +parts[1];
-        const id = this.tileMap.getTerrain(gx, gy);
-        if (!id) continue;
-        const asset = getAsset(id);
-        if (!asset) continue;
-        const { x, y } = cellToScreen(gx, gy);
-        const dx = x - asset.anchorX;
-        const dy = y - asset.anchorY;
-        const pivot = cellToScreen(gx + 0.5, gy + 0.5);
-        this.ctx.save();
-        this.ctx.globalAlpha *= Math.min(1, t * 1.6);
-        this.ctx.translate(pivot.x, pivot.y);
-        this.ctx.scale(s, s);
-        this.ctx.translate(-pivot.x, -pivot.y);
-        this.ctx.drawImage(asset.displayCanvas, dx, dy);
-        this.ctx.restore();
+  const toastEl=document.getElementById('toast');
+  let toastTimer=null;
+  function showToast(msg){toastEl.textContent=msg; toastEl.classList.add('show'); clearTimeout(toastTimer); toastTimer=setTimeout(()=>toastEl.classList.remove('show'),1800);}
+
+  const game=new Game(document.getElementById('game-canvas'));
+  game.uiUpdate=buildUi;
+
+  const catTabs=document.getElementById('cat-tabs');
+  const assetGrid=document.getElementById('asset-grid');
+  const assetCount=document.getElementById('asset-count');
+
+  function buildUi(){
+    catTabs.innerHTML='';
+    CATEGORIES.forEach(cat=>{
+      const btn=document.createElement('button');
+      btn.className='cat-tab'+(cat===game.category?' active':'');
+      btn.textContent=cat;
+      btn.onclick=()=>{game.setCategory(cat); buildUi();};
+      catTabs.appendChild(btn);
+    });
+    assetGrid.innerHTML='';
+    const items=ASSET_MANIFEST.filter(a=>a.category===game.category);
+    assetCount.textContent=items.length+' items';
+    items.forEach(a=>{
+      const btn=document.createElement('div');
+      btn.className='asset-btn'+(a.id===game.selectedAssetId?' selected':'');
+      btn.textContent=a.name;
+      btn.onclick=()=>{game.selectAsset(a.id); buildUi();};
+      assetGrid.appendChild(btn);
+    });
+  }
+
+  document.getElementById('btn-fill').onclick=()=>game.fillAsh();
+  document.getElementById('btn-grid').onclick=()=>game.toggleGrid();
+  document.getElementById('btn-erase').onclick=()=>game.toggleTool('erase');
+  document.getElementById('btn-reset').onclick=()=>{if(confirm('Reset world?'))game.reset();};
+
+  const palette=document.getElementById('palette');
+  document.getElementById('palette-toggle').onclick=()=>palette.classList.toggle('collapsed');
+
+  function seedBonepileWorld(){
+    const W=game.tileMap.width,H=game.tileMap.height;
+    const STEP=32,OBJ_DELAY=90;
+    const placeT=(id,gx,gy)=>game.placeAndAnimate(id,gx,gy,{delay:(gx+gy)*STEP});
+    const placeO=(id,gx,gy)=>game.placeAndAnimate(id,gx,gy,{delay:(gx+gy)*STEP+OBJ_DELAY});
+    for(let gy=0;gy<H;gy++)for(let gx=0;gx<W;gx++)placeT('ash',gx,gy);
+    const mx=Math.floor(W/2),my=Math.floor(H/2);
+    for(let gx=1;gx<W-1;gx++)placeT('obsidian',gx,my);
+    for(let gy=1;gy<H-1;gy++)placeT('obsidian',mx,gy);
+    for(let gx=0;gx<W;gx++){placeT('lava',gx,H-1); placeT('lava',gx,H-2);}
+    for(let gx=0;gx<W;gx++)placeT('moss_stone',gx,H-3);
+    placeO('mausoleum',2,2); placeO('bone_tower',11,2); placeO('altar_dark',2,7); placeO('crypt',7,7);
+    placeO('dead_tree',1,5); placeO('dead_tree',12,5); placeO('mushroom_red',5,3); placeO('bone_tree',0,9); placeO('thorns',13,8);
+    placeO('torch',4,6); placeO('torch',9,6); placeO('skull_pile',6,5); placeO('tombstone',11,6); placeO('necropolis_gate',5,H-2);
+  }
+
+  const fill=document.getElementById('loading-fill');
+  const loading=document.getElementById('loading');
+  const app=document.getElementById('app');
+  const errEl=document.getElementById('loading-error');
+
+  try{
+    let progress=0;
+    const bootInterval=setInterval(()=>{
+      try{
+        progress+=0.18;
+        fill.style.width=Math.min(100,progress*100)+'%';
+        if(progress>=1){
+          clearInterval(bootInterval);
+          setTimeout(()=>{
+            loading.classList.add('hidden');
+            app.classList.remove('hidden');
+            buildUi();
+            seedBonepileWorld();
+            showToast('Welcome to Bonepile');
+          },250);
+        }
+      }catch(err){
+        clearInterval(bootInterval);
+        errEl.textContent='Boot error: '+err.message;
+        errEl.style.opacity=1;
+        console.error(err);
       }
-    }
+    },100);
+  }catch(err){
+    errEl.textContent='Fatal: '+err.message;
+    errEl.style.opacity=1;
+    console.error(err);
   }
 
-  draw() {
-    this._snapshotAnims();
-    const pending = this._anims.size > 0;
-    if (!this._dirty && !pending) return;
-    this._dirty = false;
-
-    const ctx = this.ctx;
-    const w = window.innerWidth, h = window.innerHeight;
-    ctx.clearRect(0, 0, w, h);
-
-    // Dark backdrop
-    ctx.fillStyle = '#121212';
-    ctx.fillRect(0, 0, w, h);
-
-    ctx.save();
-    this._applyCamera();
-
-    this._ensureTerrainCache();
-    this._ensureObjectsCache();
-    const wb = this._ensureWorldBounds();
-
-    if (this._terrainCanvas) ctx.drawImage(this._terrainCanvas, wb.x, wb.y);
-    if (this.showGrid) this._drawGrid();
-    if (this._objectsCanvas) ctx.drawImage(this._objectsCanvas, wb.x, wb.y);
-
-    this._drawAnims();
-    this._drawPreview();
-    this._drawHover();
-
-    ctx.restore();
-  }
-
-  _applyCamera() {
-    this.ctx.translate(this.camera.offsetX, this.camera.offsetY);
-    this.ctx.scale(this.camera.zoom, this.camera.zoom);
-  }
-}
-
-/* ── Input Manager ── */
-class InputManager {
-  constructor(canvas, camera, game) {
-    this.canvas = canvas; this.camera = camera; this.game = game;
-    this._panning = false; this._lastPan = null;
-    this._brush = false; this._brushErase = false;
-    this._longPressTimer = null;
-
-    canvas.addEventListener('pointerdown', e => this._onDown(e));
-    window.addEventListener('pointermove', e => this._onMove(e));
-    window.addEventListener('pointerup', e => this._onUp(e));
-    canvas.addEventListener('wheel', e => this._onWheel(e), { passive: false });
-    window.addEventListener('keydown', e => this._onKey(e));
-  }
-
-  _eventPos(e) {
-    const rect = this.canvas.getBoundingClientRect();
-    return { x: e.clientX - rect.left, y: e.clientY - rect.top };
-  }
-
-  _cellAt(sx, sy) {
-    const w = this.camera.screenToWorld(sx, sy);
-    // Inverse iso: gx = (x / (w/2) + y / (h/2)) / 2
-    const TW = CONFIG.tile.w, TH = CONFIG.tile.h;
-    const gx = Math.floor((w.x / (TW / 2) + w.y / (TH / 2)) / 2);
-    const gy = Math.floor((w.y / (TH / 2) - w.x / (TW / 2)) / 2);
-    return { gx, gy };
-  }
-
-  _onDown(e) {
-    if (e.button === 1 || (e.button === 0 && e.shiftKey)) {
-      this._panning = true; this._lastPan = this._eventPos(e); e.preventDefault(); return;
-    }
-    if (e.button === 2) {
-      this._brushErase = true; this._brush = true; this._paint(this._eventPos(e)); e.preventDefault(); return;
-    }
-    if (e.button === 0) {
-      this._brush = true;
-      if (this.game.tool === 'pan') { this._panning = true; this._lastPan = this._eventPos(e); return; }
-      if (this.game.tool === 'erase') this._brushErase = true;
-      this._paint(this._eventPos(e));
-      // Long press for erase on touch
-      this._longPressTimer = setTimeout(() => { this._brushErase = true; this._paint(this._eventPos(e)); }, 420);
-    }
-  }
-
-  _onMove(e) {
-    const pos = this._eventPos(e);
-    const cell = this._cellAt(pos.x, pos.y);
-    this.game.onHover(cell);
-    if (this._panning && this._lastPan) {
-      const dx = pos.x - this._lastPan.x, dy = pos.y - this._lastPan.y;
-      this.camera.pan(dx, dy); this._lastPan = pos;
-    } else if (this._brush) {
-      clearTimeout(this._longPressTimer);
-      this._paint(pos);
-    }
-  }
-
-  _onUp(e) {
-    clearTimeout(this._longPressTimer);
-    this._panning = false; this._lastPan = null;
-    this._brush = false; this._brushErase = false;
-  }
-
-  _onWheel(e) {
-    e.preventDefault();
-    const pos = this._eventPos(e);
-    const factor = e.deltaY < 0 ? 1.08 : 0.92;
-    this.camera.zoomAt(pos.x, pos.y, factor);
-  }
-
-  _onKey(e) {
-    if (e.key === 'e' || e.key === 'E') this.game.toggleTool('erase');
-    if (e.key === 'g' || e.key === 'G') this.game.toggleGrid();
-    if (e.key === 'h' || e.key === 'H') this.game.toggleFlipH();
-    if (e.key === 'v' || e.key === 'V') this.game.toggleFlipV();
-    if (e.key === '1') this.game.setCategory('terrain');
-    if (e.key === '2') this.game.setCategory('nature');
-    if (e.key === '3') this.game.setCategory('props');
-    if (e.key === '4') this.game.setCategory('hazards');
-    if (e.key === '5') this.game.setCategory('buildings');
-    if (e.key === 'r' || e.key === 'R') { if (confirm('Reset world?')) this.game.reset(); }
-  }
-
-  _paint(pos) {
-    const cell = this._cellAt(pos.x, pos.y);
-    if (this._brushErase) this.game.onSecondaryClick(cell.gx, cell.gy);
-    else this.game.onPrimaryClick(cell.gx, cell.gy);
-  }
-}
-
-/* ── Placement System ── */
-class PlacementSystem {
-  constructor(tileMap) { this.tileMap = tileMap; }
-  canPlace(assetId, gx, gy) {
-    const def = ASSET_INDEX[assetId];
-    if (!def) return false;
-    if (def.kind === 'terrain') return this.tileMap.inBounds(gx, gy);
-    // Object: check bounds and no overlap
-    for (let ix = 0; ix < def.footprint.w; ix++)
-      for (let iy = 0; iy < def.footprint.d; iy++)
-        if (!this.tileMap.inBounds(gx + ix, gy + iy) || this.tileMap.objectAt(gx + ix, gy + iy)) return false;
-    return true;
-  }
-  place(assetId, gx, gy, opts = {}) {
-    const def = ASSET_INDEX[assetId];
-    if (!def) return null;
-    if (!this.canPlace(assetId, gx, gy)) return null;
-    if (def.kind === 'terrain') {
-      this.tileMap.setTerrain(gx, gy, assetId);
-      return { kind: 'terrain', assetId, gx, gy };
-    }
-    const obj = this.tileMap.addObject(assetId, gx, gy, opts);
-    return obj ? { kind: 'object', object: obj } : null;
-  }
-  erase(gx, gy) {
-    if (this.tileMap.removeObject(gx, gy)) return true;
-    if (this.tileMap.getTerrain(gx, gy)) {
-      this.tileMap.setTerrain(gx, gy, null);
-      return true;
-    }
-    return false;
-  }
-}
-
-/* ── Game Controller ── */
-class Game {
-  constructor(canvas) {
-    this.canvas = canvas;
-    this.tileMap = new TileMap();
-    this.camera = new Camera();
-    this.renderer = new Renderer(canvas, this.camera, this.tileMap);
-    this.placement = new PlacementSystem(this.tileMap);
-    this.input = new InputManager(canvas, this.camera, this);
-    this.camera.onChange(() => this.renderer.markDirty());
-
-    this.tool = 'place';
-    this.category = 'terrain';
-    this.selectedAssetId = ASSET_MANIFEST.find(a => a.category === 'terrain').id;
-    this.flipH = false; this.flipV = false;
-
-    this._centerCamera();
-    this._loop = this._loop.bind(this);
-    requestAnimationFrame(this._loop);
-  }
-
-  _centerCamera() {
-    const c = cellToScreen(this.tileMap.width / 2, this.tileMap.height / 2);
-    this.camera.centerOn(c.x, c.y, window.innerWidth, window.innerHeight);
-  }
-
-  setTool(t) {
-    this.tool = t;
-    this.renderer.eraseMode = (t === 'erase');
-    this.canvas.style.cursor = t === 'pan' ? 'grab' : 'crosshair';
-    this.renderer.markDirty();
-  }
-  toggleTool(t) { this.setTool(this.tool === t ? 'place' : t); }
-
-  setCategory(cat) {
-    if (this.category === cat) return;
-    this.category = cat;
-    const first = ASSET_MANIFEST.find(a => a.category === cat);
-    if (first) this.selectedAssetId = first.id;
-    this._resetFlip();
-    this.renderer.markDirty();
-    this.uiUpdate?.();
-  }
-  selectAsset(id) {
-    const a = ASSET_INDEX[id];
-    if (!a) return;
-    this.selectedAssetId = id; this.category = a.category;
-    if (this.tool === 'erase') this.setTool('place');
-    this._resetFlip();
-    this.renderer.markDirty();
-    this.uiUpdate?.();
-  }
-  toggleFlipH() { this.flipH = !this.flipH; this._syncFlip(); this.renderer.markDirty(); }
-  toggleFlipV() { this.flipV = !this.flipV; this._syncFlip(); this.renderer.markDirty(); }
-  _resetFlip() { this.flipH = false; this.flipV = false; this._syncFlip(); }
-  _syncFlip() { this.renderer.previewFlipH = this.flipH; this.renderer.previewFlipV = this.flipV; }
-  toggleGrid() { this.renderer.showGrid = !this.renderer.showGrid; this.renderer.markDirty(); }
-
-  reset() {
-    this.tileMap.clearAll();
-    this._centerCamera();
-    this.renderer.markDirty();
-    showToast('World consumed by void');
-  }
-
-  fillAsh() {
-    const W = this.tileMap.width, H = this.tileMap.height;
-    let filled = 0;
-    for (let gy = 0; gy < H; gy++)
-      for (let gx = 0; gx < W; gx++) {
-        if (this.tileMap.getTerrain(gx, gy)) continue;
-        if (this.placeAndAnimate('ash', gx, gy, { delay: (gx + gy) * 32 })) filled++;
-      }
-    if (filled > 0) showToast(`Covered ${filled} tiles in ash`);
-    else showToast('Grid already scorched');
-    return filled;
-  }
-
-  onHover(cell) {
-    const prev = this.renderer.hoverCell;
-    const same = prev && prev.gx === cell.gx && prev.gy === cell.gy;
-    this.renderer.hoverCell = cell;
-    if (this.tool === 'erase') {
-      this.renderer.previewAssetId = null;
-      this.renderer.previewValid = !!this.tileMap.objectAt(cell.gx, cell.gy) || !!this.tileMap.getTerrain(cell.gx, cell.gy);
-    } else if (this.tool === 'place') {
-      this.renderer.previewAssetId = this.selectedAssetId;
-      this.renderer.previewValid = this.placement.canPlace(this.selectedAssetId, cell.gx, cell.gy);
-    } else {
-      this.renderer.previewAssetId = null; this.renderer.previewValid = true;
-    }
-    if (!same) this.renderer.markDirty();
-  }
-
-  onPrimaryClick(gx, gy) {
-    if (!this.tileMap.inBounds(gx, gy)) return;
-    if (this.tool === 'erase') {
-      const target = this.tileMap.objectAt(gx, gy) || this.tileMap.getTerrain(gx, gy);
-      if (this.placement.erase(gx, gy)) this.renderer.markDirty();
-    } else if (this.tool === 'place') {
-      const result = this.placement.place(this.selectedAssetId, gx, gy, { flipH: this.flipH, flipV: this.flipV });
-      if (result?.kind === 'object') {
-        const o = result.object;
-        this.renderer.spawnAnim(`obj-${o.id}`, { gx: o.gx, gy: o.gy, w: o.footprint.w, d: o.footprint.d });
-      } else if (result?.kind === 'terrain') {
-        this.renderer.spawnAnim(`t-${result.gx},${result.gy}`, { gx: result.gx, gy: result.gy, w: 1, d: 1 });
-      }
-    }
-  }
-
-  onSecondaryClick(gx, gy) {
-    if (!this.tileMap.inBounds(gx, gy)) return;
-    if (this.placement.erase(gx, gy)) this.renderer.markDirty();
-  }
-
-  placeAndAnimate(assetId, gx, gy, opts = {}) {
-    const result = this.placement.place(assetId, gx, gy, { flipH: !!opts.flipH, flipV: !!opts.flipV });
-    if (!result) return null;
-    const start = performance.now() + (opts.delay ?? 0);
-    const dur = opts.duration ?? 460;
-    if (result.kind === 'object') {
-      const o = result.object;
-      this.renderer.spawnAnim(`obj-${o.id}`, { gx: o.gx, gy: o.gy, w: o.footprint.w, d: o.footprint.d }, dur, start);
-    } else if (result.kind === 'terrain') {
-      this.renderer.spawnAnim(`t-${result.gx},${result.gy}`, { gx: result.gx, gy: result.gy, w: 1, d: 1 }, dur, start);
-    }
-    return result;
-  }
-
-  _loop() {
-    this.renderer.draw();
-    requestAnimationFrame(this._loop);
-  }
-}
-
-/* ── UI wiring ── */
-const game = new Game(document.getElementById('game-canvas'));
-game.uiUpdate = buildUi;
-
-const toastEl = document.getElementById('toast');
-let toastTimer = null;
-function showToast(msg) {
-  toastEl.textContent = msg;
-  toastEl.classList.add('show');
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => toastEl.classList.remove('show'), 1800);
-}
-
-// Build palette UI
-const catTabs = document.getElementById('cat-tabs');
-const assetGrid = document.getElementById('asset-grid');
-const assetCount = document.getElementById('asset-count');
-
-function buildUi() {
-  // Tabs
-  catTabs.innerHTML = '';
-  CATEGORIES.forEach((cat, i) => {
-    const btn = document.createElement('button');
-    btn.className = 'cat-tab' + (cat === game.category ? ' active' : '');
-    btn.textContent = cat;
-    btn.onclick = () => { game.setCategory(cat); buildUi(); };
-    catTabs.appendChild(btn);
-  });
-
-  // Assets
-  assetGrid.innerHTML = '';
-  const items = ASSET_MANIFEST.filter(a => a.category === game.category);
-  assetCount.textContent = `${items.length} items`;
-  items.forEach(a => {
-    const btn = document.createElement('div');
-    btn.className = 'asset-btn' + (a.id === game.selectedAssetId ? ' selected' : '');
-    btn.textContent = a.name;
-    btn.onclick = () => { game.selectAsset(a.id); buildUi(); };
-    assetGrid.appendChild(btn);
-  });
-}
-
-// HUD buttons
-document.getElementById('btn-fill').onclick = () => game.fillAsh();
-document.getElementById('btn-grid').onclick = () => game.toggleGrid();
-document.getElementById('btn-erase').onclick = () => game.toggleTool('erase');
-document.getElementById('btn-reset').onclick = () => { if (confirm('Reset world?')) game.reset(); };
-
-// Palette toggle
-const palette = document.getElementById('palette');
-document.getElementById('palette-toggle').onclick = () => palette.classList.toggle('collapsed');
-
-// Seed starter scene
-function seedBonepileWorld() {
-  const W = game.tileMap.width, H = game.tileMap.height;
-  const STEP = 32, OBJ_DELAY = 90;
-  const placeT = (id, gx, gy) => game.placeAndAnimate(id, gx, gy, { delay: (gx + gy) * STEP });
-  const placeO = (id, gx, gy) => game.placeAndAnimate(id, gx, gy, { delay: (gx + gy) * STEP + OBJ_DELAY });
-
-  // Ash base
-  for (let gy = 0; gy < H; gy++) for (let gx = 0; gx < W; gx++) placeT('ash', gx, gy);
-
-  // Obsidian path cross
-  const mx = Math.floor(W / 2), my = Math.floor(H / 2);
-  for (let gx = 1; gx < W - 1; gx++) placeT('obsidian', gx, my);
-  for (let gy = 1; gy < H - 1; gy++) placeT('obsidian', mx, gy);
-
-  // Lava moat front
-  for (let gx = 0; gx < W; gx++) { placeT('lava', gx, H - 1); placeT('lava', gx, H - 2); }
-  for (let gx = 0; gx < W; gx++) placeT('moss_stone', gx, H - 3);
-
-  // Buildings
-  placeO('mausoleum', 2, 2);
-  placeO('bone_tower', 11, 2);
-  placeO('altar_dark', 2, 7);
-  placeO('crypt', 7, 7);
-
-  // Nature
-  placeO('dead_tree', 1, 5);
-  placeO('dead_tree', 12, 5);
-  placeO('mushroom_red', 5, 3);
-  placeO('bone_tree', 0, 9);
-  placeO('thorns', 13, 8);
-
-  // Props
-  placeO('torch', 4, 6);
-  placeO('torch', 9, 6);
-  placeO('skull_pile', 6, 5);
-  placeO('tombstone', 11, 6);
-  placeO('necropolis_gate', 5, H - 2);
-}
-
-// Boot sequence
-const fill = document.getElementById('loading-fill');
-const loading = document.getElementById('loading');
-const app = document.getElementById('app');
-
-// Simulate asset crafting progress
-let progress = 0;
-const bootInterval = setInterval(() => {
-  progress += 0.15;
-  fill.style.width = `${Math.min(100, progress * 100)}%`;
-  if (progress >= 1) {
-    clearInterval(bootInterval);
-    setTimeout(() => {
-      loading.classList.add('hidden');
-      app.classList.remove('hidden');
-      buildUi();
-      seedBonepileWorld();
-      showToast('Welcome to Bonepile');
-    }, 300);
-  }
-}, 120);
-
-// Prevent context menu on right click
-document.addEventListener('contextmenu', e => e.preventDefault());
+  document.addEventListener('contextmenu',e=>e.preventDefault());
+})();
 </script>
 </body>
 </html>
