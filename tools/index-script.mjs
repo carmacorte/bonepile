@@ -1,69 +1,4 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>Bonepile Voxel Builder — Modular</title>
-<style>
-  :root { --bg:#121212; --panel:#1a1a1a; --border:#2a2a2a; --text:#e3dac9; --dim:#9e917a; --accent:#d44a3a; }
-  *{box-sizing:border-box;margin:0;padding:0}
-  body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;overflow:hidden;touch-action:none;user-select:none}
-  canvas{display:block;width:100%;height:100%;cursor:crosshair}
-  #start{position:fixed;inset:0;background:var(--bg);z-index:100;display:flex;flex-direction:column;align-items:center;justify-content:center}
-  #start button{margin-top:20px;padding:12px 32px;border-radius:8px;background:var(--accent);color:#fff;border:none;font-size:16px;cursor:pointer}
-  #start.error button{background:#8a1c1c}
-  #start.hidden{display:none}
-  #palette{position:fixed;right:0;top:0;bottom:0;width:220px;background:rgba(18,18,18,0.95);border-left:1px solid var(--border);display:flex;flex-direction:column;z-index:50}
-  #palette.collapsed{transform:translateX(100%)}
-  .cat-tabs{display:flex;gap:4px;padding:8px 12px;overflow-x:auto}
-  .cat-tab{padding:6px 10px;border-radius:6px;background:transparent;border:1px solid transparent;color:var(--dim);font-size:11px;text-transform:uppercase;cursor:pointer;white-space:nowrap}
-  .cat-tab.active{background:var(--accent);color:#fff;border-color:var(--accent)}
-  .asset-grid{flex:1;overflow-y:auto;display:grid;grid-template-columns:repeat(3,1fr);gap:6px;padding:8px 12px}
-  .asset-btn{aspect-ratio:1;border-radius:8px;background:var(--panel);border:2px solid var(--border);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--dim);padding:4px}
-  .asset-btn.selected{border-color:var(--accent);color:#ff6b35;background:#2a1a1a}
-  #hud{position:fixed;left:12px;bottom:12px;z-index:50;display:flex;gap:8px;flex-wrap:wrap;pointer-events:none}
-  .hud-btn{pointer-events:auto;padding:8px 12px;border-radius:8px;background:rgba(18,18,18,0.9);border:1px solid var(--border);color:var(--text);font-size:12px;cursor:pointer}
-  #status{position:fixed;left:12px;top:12px;z-index:50;background:rgba(18,18,18,0.88);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--dim);font-size:12px;line-height:1.4;pointer-events:none}
-  #toast{position:fixed;left:50%;bottom:80px;transform:translateX(-50%) translateY(20px);background:rgba(26,26,26,0.95);border:1px solid var(--border);padding:10px 18px;border-radius:8px;font-size:13px;opacity:0;transition:opacity 0.3s,transform 0.3s;pointer-events:none;z-index:90}
-  #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
-</style>
-</head>
-<body>
-<div id="start">
-  <div style="font-size:28px;font-weight:700;letter-spacing:0.15em;text-transform:uppercase">Bonepile</div>
-  <div style="font-size:13px;color:var(--dim);margin-top:6px">Modular Voxel Engine</div>
-  <button id="start-btn">Enter the Void</button>
-  <div id="start-err" style="margin-top:16px;color:var(--accent);font-size:12px;max-width:400px;text-align:center"></div>
-</div>
 
-<div id="app" style="opacity:0;transition:opacity 0.5s">
-  <canvas id="game-canvas"></canvas>
-  <div id="palette-toggle" style="position:fixed;right:12px;top:12px;z-index:60;width:36px;height:36px;border-radius:8px;background:var(--panel);border:1px solid var(--border);color:var(--text);display:flex;align-items:center;justify-content:center;cursor:pointer">&#9776;</div>
-  <div id="palette">
-    <div style="padding:12px 16px;border-bottom:1px solid var(--border);font-weight:600;font-size:14px;letter-spacing:0.05em;text-transform:uppercase;color:var(--dim);display:flex;justify-content:space-between">
-      <span>Assets</span><span id="asset-count" style="font-size:11px;color:var(--dim)">0</span>
-    </div>
-    <div class="cat-tabs" id="cat-tabs"></div>
-    <div class="asset-grid" id="asset-grid"></div>
-  </div>
-  <div id="status">Tool: Place<br>Asset: -<br>Objects: 0</div>
-  <div id="hud">
-    <button class="hud-btn" id="btn-seed">Seed Necropolis</button>
-    <button class="hud-btn" id="btn-fill">Fill Ash</button>
-    <button class="hud-btn" id="btn-grid">Grid</button>
-    <button class="hud-btn" id="btn-erase">Erase</button>
-    <button class="hud-btn" id="btn-reset">Reset</button>
-    <button class="hud-btn" id="btn-save">Save</button>
-    <button class="hud-btn" id="btn-load">Load</button>
-    <button class="hud-btn" id="btn-export">Export JSON</button>
-    <button class="hud-btn" id="btn-import">Import JSON</button>
-    <input id="import-file" type="file" accept="application/json" style="display:none">
-    <div class="hud-btn" style="cursor:default;color:var(--dim)">Click place / Right erase / Shift pan / Wheel zoom</div>
-  </div>
-  <div id="toast"></div>
-</div>
-
-<script type="module">
 import { WorldData } from './src/core/WorldData.js';
 import { ASSET_INDEX, CATEGORIES, PALETTE } from './src/core/AssetRegistry.js';
 import { VoxelBuilder } from './src/core/VoxelBuilder.js';
@@ -314,6 +249,3 @@ document.getElementById('start-btn').onclick = () => {
 };
 
 document.addEventListener('contextmenu', e => e.preventDefault());
-</script>
-</body>
-</html>
