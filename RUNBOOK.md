@@ -1,85 +1,76 @@
-# Bonepile Runbook
+# RUNBOOK — Bonepile v0.4 Alpha
 
-## Current playable target
-This package is a browser-based vertical-slice reference for the Bonepile voxel/isometric engine. It is not yet the Unity project; the Unity C# folder is a porting scaffold.
+## 1. Requirements
 
-## Run locally
+Install Node.js LTS. Then use a terminal inside this project folder.
 
-From the project root:
-
-```bash
-python3 -m http.server 8080
-```
-
-Open:
-
-```txt
-http://localhost:8080
-```
-
-Alternative with npm:
+## 2. First run
 
 ```bash
-npm run serve
+npm install
+npm run dev
 ```
 
-## Validate logic
+Open the Vite URL shown in the terminal.
+
+## 3. Fast validation checklist
+
+1. Press **Enter the Vault**.
+2. Move R3-W0RK with **WASD**.
+3. Rotate camera with **mouse drag** or **Q/E**.
+4. Approach yellow scrap nodes; they should disappear and increase Scrap.
+5. Approach a damaged NPC; press **E** when the prompt appears.
+6. Enter an AOI cone; Detection should rise.
+7. Hide behind large SMT components; Detection should stop or decay.
+8. Press **Space** to deploy Flux Smoke; Detection should not rise while active.
+
+## 4. Build validation
 
 ```bash
 npm run check
+npm run build
+npm run preview
 ```
 
-Expected output:
+## 5. GitHub upload
 
-```txt
-CHECK PASSED
-Assets: 27
-Categories: terrain, nature, props, hazards, buildings
-Sample objects: 18
+```bash
+git init
+git add .
+git commit -m "Bonepile v0.4 alpha Three.js playable prototype"
+git branch -M main
+git remote add origin https://github.com/<YOUR_USER>/bonepile.git
+git push -u origin main
 ```
 
-## Browser controls
+## 6. GitHub Pages
 
-| Input | Action |
-|---|---|
-| Left click | Place selected asset |
-| Right click | Erase terrain/object |
-| Shift + drag | Pan camera |
-| Mouse wheel | Zoom |
-| E | Toggle erase mode |
-| G | Toggle grid |
-| H | Toggle horizontal flip preview |
-| V | Toggle vertical flip preview |
-| 1-5 | Switch asset category |
+This project includes `.github/workflows/deploy.yml`.
 
-## Test checklist
+Recommended setup:
 
-1. Click **Enter the Void**.
-2. Click **Seed Necropolis**. A complete sample map should appear.
-3. Toggle **Grid**.
-4. Select a building and place it on an empty area.
-5. Try placing over another object; preview should mark invalid.
-6. Right-click an object to erase it.
-7. Click **Save**, reload the browser, then click **Load**.
-8. Click **Export JSON**, then **Import JSON** with the exported file.
+1. Push to GitHub.
+2. Go to repository **Settings > Pages**.
+3. Under **Build and deployment**, choose **GitHub Actions**.
+4. Push to `main`; the workflow builds and publishes `dist/`.
 
-## What changed in this iteration
+## 7. Troubleshooting
 
-- Added `terrainVersion` and `objectsVersion` in `WorldData` so renderer caches invalidate correctly.
-- Fixed the start overlay by adding the missing `.hidden` CSS behavior.
-- Fixed `Game._toggleTool()` by assigning `this.canvas`.
-- Added status HUD: tool, selected asset, object count, flip state.
-- Added deterministic sample generator: `src/gameplay/SampleWorldFactory.js`.
-- Added **Seed Necropolis**, **Export JSON**, and **Import JSON** controls.
-- Added `package.json` and `tools/check.mjs` for repeatable validation.
+### npm command not found
+Install Node.js LTS and reopen the terminal.
 
-## Next development block
+### Black screen after start
+Open browser DevTools and check Console. Most likely causes are dependency install failure or WebGL disabled.
 
-Recommended next block: move from 2D canvas reference into Unity mesh validation.
+### Camera feels too close/far
+Use mouse wheel. Defaults are configured in `src/core/Game.js`.
 
-Deliverables:
+### Need to tune AOI detection
+Adjust values in `src/core/Constants.js`:
 
-- `VoxelMeshBuilder.cs` hardening
-- `AssetDefinition` ScriptableObject workflow
-- Unity scene bootstrap script
-- runtime mesh preview for the same sample necropolis
+```js
+droneDetectionDistance
+droneDetectionAngle
+droneDetectionGain
+droneDetectionLoss
+```

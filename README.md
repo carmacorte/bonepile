@@ -1,106 +1,75 @@
-# Bonepile Voxel Builder — Modular Engine
+# Bonepile v0.4 Alpha — Three.js First Playable Prototype
 
-Arquitectura desacoplada para construir y probar un builder isométrico/voxel de Bonepile, con demo web funcional y scaffold de port a Unity.
+This build moves Bonepile from the previous isometric/voxel construction prototype into a fast playable Three.js prototype focused on the SMT survival-adventure direction.
 
-## Estructura
+## Current gameplay slice
 
-```txt
-bonepile-engine/
-├── index.html
-├── package.json
-├── RUNBOOK.md
-├── src/
-│   ├── core/
-│   │   ├── WorldData.js
-│   │   ├── AssetRegistry.js
-│   │   ├── VoxelBuilder.js
-│   │   └── IsoMath.js
-│   ├── gameplay/
-│   │   └── SampleWorldFactory.js
-│   ├── systems/
-│   │   ├── PlacementSystem.js
-│   │   ├── CameraSystem.js
-│   │   └── InputSystem.js
-│   ├── render/
-│   │   └── CanvasRenderer.js
-│   ├── ui/
-│   │   └── UIManager.js
-│   └── save/
-│       └── SaveManager.js
-├── tools/
-│   └── check.mjs
-└── unity-port/
-    ├── BonepileWorld.cs
-    ├── AssetDefinition.cs
-    ├── IsoGrid.cs
-    ├── VoxelMeshBuilder.cs
-    ├── PlacementController.cs
-    └── WorldSerializer.cs
-```
+- Third-person playable R3-W0RK placeholder.
+- Zelda/Conker-style follow camera.
+- Giant PCB / MRB Vault environment.
+- AOI drone patrols.
+- AOI vision cones and detection meter.
+- Cover-based line-of-sight blocking.
+- Flux Smoke stealth ability.
+- Scrap pickup resource loop.
+- Damaged electronic NPC repair interaction.
+- GitHub Pages-ready Vite setup.
 
-## Ejecutar
+## Controls
+
+| Action | Input |
+|---|---|
+| Move | WASD / Arrow keys |
+| Rotate camera | Mouse drag or Q/E |
+| Zoom camera | Mouse wheel |
+| Dash | Shift |
+| Flux Smoke | Space |
+| Repair / interact | E |
+
+## Run locally
 
 ```bash
-python3 -m http.server 8080
+npm install
+npm run dev
 ```
 
-Abrir:
+Open the local URL printed by Vite, usually:
 
 ```txt
-http://localhost:8080
+http://localhost:5173
 ```
 
-O usando npm:
+## Build for GitHub Pages
 
 ```bash
-npm run serve
+npm run build
 ```
 
-## Validar
+The production files are generated in:
+
+```txt
+dist/
+```
+
+## Smoke check
+
+This command checks that the project structure and core modules exist:
 
 ```bash
 npm run check
 ```
 
-## Controles
+## Technical direction
 
-| Input | Acción |
-|---|---|
-| Click izquierdo | Colocar asset seleccionado |
-| Click derecho | Borrar |
-| Shift + drag | Pan cámara |
-| Scroll | Zoom |
-| E | Toggle erase |
-| G | Toggle grid |
-| H/V | Flip horizontal/vertical |
-| 1-5 | Cambiar categoría |
+This is intentionally built with procedural placeholder geometry. The objective is speed: validate movement, camera, stealth, scale, AOI behavior, and visual mood before investing time in Blender/Unity asset pipelines.
 
-## Funciones actuales
+The future GLB/FBX pipeline can replace the procedural placeholders without changing the high-level architecture.
 
-- Grid isométrico 14×14.
-- 27 assets voxel definidos en `AssetRegistry`.
-- Terrenos, props, hazards y buildings.
-- Validación de footprint y overlap.
-- Save/load en `localStorage`.
-- Export/import JSON.
-- Sample map con **Seed Necropolis**.
-- Cache de render separado por terrain/object version.
+## Recommended next milestones
 
-## Portar a Unity
-
-1. Copia `unity-port/` dentro de `Assets/Scripts/Bonepile/`.
-2. Crea ScriptableObjects `AssetDefinition` para cada asset.
-3. Usa `VoxelMeshBuilder.BuildMesh()` para convertir voxels a Mesh.
-4. Usa `BonepileWorld` como estado serializable.
-5. Usa `WorldSerializer` para save/load JSON compatible con el demo web.
-6. Implementa un scene bootstrap que instancie el sample map o cargue un JSON exportado desde el navegador.
-
-## Siguiente bloque técnico
-
-El siguiente paso recomendado es endurecer el port Unity:
-
-- scene bootstrap
-- mesh preview runtime
-- material palette
-- face culling real
-- shader voxel oscuro
+1. Replace R3-W0RK placeholder with GLB model.
+2. Add real locomotion/repair/hide animations.
+3. Add AOI alarm chase and capture consequence.
+4. Add repair minigame.
+5. Expand MRB Vault into connected rooms.
+6. Add audio: hum, scanner sweep, solder dash, repair cue.

@@ -1,1 +1,18 @@
-{"type":"module","scripts":{"serve":"python3 -m http.server 8080","check":"node tools/check.mjs"},"devDependencies":{}}
+{
+  "name": "bonepile-v0-4-alpha",
+  "version": "0.4.0-alpha",
+  "private": true,
+  "type": "module",
+  "description": "Bonepile v0.4 alpha: Three.js third-person SMT survival prototype.",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "vite build",
+    "preview": "vite preview --host 0.0.0.0",
+    "check": "node tools/smoke-test.mjs"
+  },
+  "dependencies": {
+    "vite": "latest",
+    "three": "latest"
+  },
+  "devDependencies": {}
+}
